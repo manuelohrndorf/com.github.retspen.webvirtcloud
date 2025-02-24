@@ -75,13 +75,14 @@ backlog = 2048
 
 def get_workers():
     procs = os.sysconf('SC_NPROCESSORS_ONLN')
-    return procs * 2 + 1 if procs > 0 else 3
+    max_workers = 8  # Set a reasonable upper limit
+    return min(procs * 2 + 1, max_workers) if procs > 0 else 3
 
 
 workers = get_workers()
 # worker_class = 'egg:gunicorn#eventlet'
-worker_connections = 1000
-timeout = 600
+worker_connections = 300
+timeout = 120
 keepalive = 2
 
 #
