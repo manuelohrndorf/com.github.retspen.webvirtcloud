@@ -41,56 +41,46 @@ OS_UUID = "iid-dswebvirtcloud"
 # ...
 #
 
-def os_metadata_json(request, version):
+def os_metadata_json(request):
     """
     :param request:
-    :param version:
     :return:
     """
-    if version == "latest":
-        ip = get_client_ip(request)
-        hostname = get_hostname_by_ip(ip)
-        response = response = f"instance-id: {OS_UUID}\nhostname: {hostname}"
-        return HttpResponse(response, content_type="text/plain")
-    else:
-        err = "Invalid version: %(version)s" % {"version": version}
-        raise Http404(err)
+    ip = get_client_ip(request)
+    hostname = get_hostname_by_ip(ip)
+    response = response = f"instance-id: {OS_UUID}\nhostname: {hostname}"
+    return HttpResponse(response, content_type="text/plain")
 
 
-def os_userdata(request, version):
+def os_userdata(request):
     """
     :param request:
-    :param version:
     :return:
     """
-    if version == "latest":
-        ip = get_client_ip(request)
-        hostname = get_hostname_by_ip(ip)
-        vname = hostname.split(".")[0]
+    ip = get_client_ip(request)
+    hostname = get_hostname_by_ip(ip)
+    vname = hostname.split(".")[0]
 
-        instance_keys = []
-        userinstances = UserInstance.objects.filter(instance__name=vname)
+    instance_keys = []
+    userinstances = UserInstance.objects.filter(instance__name=vname)
 
-        for ui in userinstances:
-            keys = UserSSHKey.objects.filter(user=ui.user)
-            for k in keys:
-                instance_keys.append(k.keypublic)
+    for ui in userinstances:
+        keys = UserSSHKey.objects.filter(user=ui.user)
+        for k in keys:
+            instance_keys.append(k.keypublic)
 
-        # Create the user data
-        user_data = "#cloud-config\n"
-        user_data += f"hostname: {vname}\n"
-        user_data += "manage_etc_hosts: true\n"
-        
-        if instance_keys:
-            user_data += "ssh_authorized_keys:"
-            for key in instance_keys:
-                user_data += f"\n  - {key}"
+    # Create the user data
+    user_data = "#cloud-config\n"
+    user_data += f"hostname: {vname}\n"
+    user_data += "manage_etc_hosts: true\n"
+    
+    if instance_keys:
+        user_data += "ssh_authorized_keys:"
+        for key in instance_keys:
+            user_data += f"\n  - {key}"
 
-        # Return as plain text
-        return HttpResponse(user_data, content_type="text/plain")
-    else:
-        err = "Invalid version: %(version)s" % {"version": version}
-        raise Http404(err)
+    # Return as plain text
+    return HttpResponse(user_data, content_type="text/plain")
 
 
 def get_client_ip(request):
