@@ -32,6 +32,7 @@ urlpatterns = [
     path("instances/", include("instances.urls")),
     path("i18n/", include("django.conf.urls.i18n")),
     path("logs/", include("logs.urls")),
+    path('wiki/', include('wiki.urls', namespace='wiki')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/v1/', include("webvirtcloud.urls-api")),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

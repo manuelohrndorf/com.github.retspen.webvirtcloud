@@ -23,6 +23,9 @@
             <a class="nav-link" href="{% url 'computes' %}">{% bs_icon 'pc-display' %} {% trans "Computes" %}</a>
         </li>
         {% endif %}
+        <li class="nav-item {% class_active request '^/wiki' %}">
+          <a class="nav-link" href="{% url 'wiki:index' %}">{% bs_icon 'info-circle' %}  {% trans "Wiki" %}</a>
+        </li>
       </ul>
       <ul class="navbar-nav ms-auto">
         {% if request.user.is_superuser %}
