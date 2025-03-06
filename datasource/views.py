@@ -49,7 +49,7 @@ def os_metadata_json(request):
     """
     ip = get_client_ip(request)
 
-    response = response = f"instance-id: {OS_UUID}"
+    response = f"instance-id: {OS_UUID}"
     return HttpResponse(response, content_type="text/plain")
 
 
