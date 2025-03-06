@@ -55,6 +55,19 @@ class UserSSHKeyForm(ModelForm):
             if self.cleaned_data["keypublic"] == key.keypublic:
                 raise ValidationError(_("Public key already exist"))
 
+        # Extract the parts of the SSH key (key type, key data, and comment)
+        ssh_key = self.cleaned_data["keypublic"]
+        key_parts = ssh_key.split()
+
+        # Remove existing comment
+        if len(key_parts) == 3:
+            key_parts = key_parts[:2] 
+
+        # Add user name as comment
+        if len(key_parts) == 2:
+            key_parts.append(self.user.username)
+            self.cleaned_data["keypublic"] = " ".join(key_parts)
+
         if not validate_ssh_key(self.cleaned_data["keypublic"]):
             raise ValidationError(_("Invalid key"))
         return self.cleaned_data["keypublic"]
