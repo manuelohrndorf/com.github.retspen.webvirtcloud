@@ -1,3 +1,4 @@
+import re
 import socket
 
 from accounts.models import UserInstance, UserSSHKey
@@ -47,8 +48,8 @@ def os_metadata_json(request):
     :return:
     """
     ip = get_client_ip(request)
-    hostname = get_hostname_by_ip(ip)
-    response = response = f"instance-id: {OS_UUID}\nhostname: {hostname}"
+
+    response = response = f"instance-id: {OS_UUID}"
     return HttpResponse(response, content_type="text/plain")
 
 
@@ -58,8 +59,7 @@ def os_userdata(request):
     :return:
     """
     ip = get_client_ip(request)
-    hostname = get_hostname_by_ip(ip)
-    vname = hostname.split(".")[0]
+    vname = get_vmname_by_ip(ip)
 
     instance_keys = []
     userinstances = UserInstance.objects.filter(instance__name=vname)
@@ -71,8 +71,8 @@ def os_userdata(request):
 
     # Create the user data
     user_data = "#cloud-config\n"
-    user_data += f"hostname: {vname}\n"
-    user_data += "manage_etc_hosts: true\n"
+    user_data += f"hostname: {get_hostname(vname)}\n"
+    #user_data += "manage_etc_hosts: true\n"
     
     if instance_keys:
         user_data += "ssh_authorized_keys:"
@@ -81,6 +81,36 @@ def os_userdata(request):
 
     # Return as plain text
     return HttpResponse(user_data, content_type="text/plain")
+
+
+def get_hostname(vm_name: str) -> str:
+    """
+    Converts a VM name into a valid hostname for /etc/hosts and /etc/hostname.
+
+    - Removes invalid characters (only allows a-z, 0-9, and '-')
+    - Ensures it starts and ends with a letter or number
+    - Limits length to 63 characters
+    - Converts to lowercase
+    """
+
+    # Convert to lowercase
+    hostname = vm_name.lower()
+
+    # Replace invalid characters with a hyphen (only allow a-z, 0-9, and '-')
+    hostname = re.sub(r'[^a-z0-9-]', '-', hostname)
+
+    # Remove leading or trailing hyphens
+    hostname = hostname.strip('-')
+
+    # Ensure it does not start with a number
+    if hostname and hostname[0].isdigit():
+        hostname = "vm-" + hostname
+
+    # Truncate to 63 characters (max allowed for a hostname)
+    hostname = hostname[:63]
+
+    # Ensure the hostname is not empty (fallback if everything was removed)
+    return hostname if hostname else "vm-default"
 
 
 def get_client_ip(request):
@@ -96,29 +126,27 @@ def get_client_ip(request):
     return ip
 
 
-def get_hostname_by_ip(ip):
+def get_vmname_by_ip(ip):
     """
-    :param ip:
-    :return:
+    :param ip: The IP address to resolve
+    :return: The VM name if found, otherwise the IP
     """
-    try:
-        # Try DNS first
-        addrs = socket.gethostbyaddr(ip)
-        return addrs[0]
-    except socket.herror:
-        pass  # No reverse DNS found
+    from django.conf import settings
 
-    # Search all VM instances for assigned IP
+    # Get MAC address from IP mapping
+    mac = settings.IP_TO_MAC.get(ip)
+
+    if not mac:
+        return ip  # No MAC found for IP, return IP
+
+    # Search all VM instances for matching MAC address
     for instance in Instance.objects.all():
         net_devices = instance.proxy.get_net_devices()
         for net in net_devices:
-            ipv4_list = net.get("ipv4") or []
-            ipv6_list = net.get("ipv6") or []
-
-            if ip in ipv4_list or ip in ipv6_list:
+            if net.get("mac") == mac:
                 return instance.name  # Return the VM name
 
-    return ip  # Default to returning the raw IP
+    return ip  # Default to returning the raw IP if not found
 
 
 def get_vdi_url(request, compute_id, vname):
@@ -134,7 +162,7 @@ def get_vdi_url(request, compute_id, vname):
             compute.hostname, compute.login, compute.password, compute.type, vname
         )
 
-        fqdn = get_hostname_by_ip(compute.hostname)
+        fqdn = get_hostname(get_vmname_by_ip(compute.hostname))
         url = f"{conn.get_console_type()}://{fqdn}:{conn.get_console_port()}"
         response = url
         return HttpResponse(response)
