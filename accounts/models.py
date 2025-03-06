@@ -31,8 +31,8 @@ class UserInstance(models.Model):
 
 class UserSSHKey(models.Model):
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    keyname = models.CharField(_("key name"), max_length=25)
-    keypublic = models.CharField(_("public key"), max_length=500)
+    keyname = models.CharField(_("key name"), max_length=50)
+    keypublic = models.CharField(_("public key"), max_length=1000)
 
     def __str__(self):
         return self.keyname
