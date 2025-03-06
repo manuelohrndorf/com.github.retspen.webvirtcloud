@@ -27,7 +27,7 @@ RUN apt-get update -qqy \
 	libsasl2-modules \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY . /srv/webvirtcloud
+COPY ./conf/requirements.txt /srv/webvirtcloud/conf/requirements.txt 
 RUN chown -R www-data:www-data /srv/webvirtcloud
 
 # Setup webvirtcloud
@@ -39,6 +39,8 @@ RUN python3 -m venv venv && \
 	pip3 install -r conf/requirements.txt && \
 	pip3 cache purge && \
 	chown -R www-data:www-data /srv/webvirtcloud
+
+COPY . /srv/webvirtcloud
 
 RUN . venv/bin/activate && \
 	python3 manage.py makemigrations && \
