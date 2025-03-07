@@ -957,7 +957,7 @@
     $("id[vcpu_mode]").multiselect();
 
     function get_cust_vols(compute_id, pool) {
-        get_vol_url = "/computes/" + compute_id + "/storage/" + pool + "/volumes";
+        get_vol_url = "/computes/" + compute_id + "/storage/" + pool + "/volumes/";
         $.getJSON(get_vol_url, function (data) {
             $("#image-control").find('option').remove();
             $.each(data['vols'], function(i, item) {
@@ -968,7 +968,7 @@
     }
 
     function get_template_vols(compute_id, pool) {
-        get_vol_url = "/computes/" + compute_id + "/storage/" + pool + "/volumes";
+        get_vol_url = "/computes/" + compute_id + "/storage/" + pool + "/volumes/";
         $.getJSON(get_vol_url, function (data) {
             $("#template").find('option').remove();
             $.each(data['vols'], function(i, item) {
