@@ -23,7 +23,7 @@
                         <span id="collapse_host_instances_{{ compute.id }}" onclick="hide_host_instances('{{ compute.id }}');" class="bi bi-chevron-up" ></span>
                     </td>
                     <td>
-                        <a class="link-dark" href="{% url 'overview' compute.id %}">{{ compute.name }}</a>
+                        <a class="link-dark" href="{% url 'overview' compute.id %}">{% bs_icon 'pc-display' %}{{ compute.name }}</a>
                         <span id="inst_count_badge_{{ compute.id }}" class="badge bg-secondary d-none">{{ compute.instance_set.count }}</span>
                     </td>
                     <td class="d-none d-sm-table-cell"></td>
