@@ -502,7 +502,7 @@
                                         <option value="cirrus">cirrus</option>
                                     {% endif %}
                                     {% for video in videos %}
-                                        <option value="{{ video }}">{{ video }}</option>
+                                        <option value="{{ video }}" {% if default_video == video %}selected{% endif %}>{{ video }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -754,7 +754,7 @@
                                             <option value="cirrus">cirrus</option>
                                         {% endif %}
                                         {% for video in videos %}
-                                            <option value="{{ video }}">{{ video }}</option>
+                                            <option value="{{ video }}" {% if default_video == video %}selected{% endif %}>{{ video }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
