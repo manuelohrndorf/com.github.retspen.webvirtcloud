@@ -1708,12 +1708,18 @@ def create_instance(request, compute_id, arch, machine):
         label = conn.label_for_firmware_path(arch, None)
         if label:
             firmwares.append(label)
+            if label.startswith(default_firmware):
+                default_firmware = label
         # Add UEFI
         loader_path = conn.find_uefi_path_for_arch(arch, dom_caps["loaders"])
         label = conn.label_for_firmware_path(arch, loader_path)
         if label:
             firmwares.append(label)
-        firmwares = list(set(firmwares))
+            if label.startswith(default_firmware):
+                default_firmware = label
+        
+        # Remove duplicates while maintaining order
+        firmwares = list(dict.fromkeys(firmwares))
 
         flavor_form = FlavorForm()
 
