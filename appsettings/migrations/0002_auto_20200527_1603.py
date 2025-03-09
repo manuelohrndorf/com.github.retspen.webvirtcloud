@@ -8,7 +8,7 @@ def add_default_settings(apps, schema_editor):
     setting = apps.get_model("appsettings", "AppSettings")
     db_alias = schema_editor.connection.alias
     setting.objects.using(db_alias).bulk_create([
-        setting(1, _("Theme"), "BOOTSTRAP_THEME", "flaty", "", _("Bootstrap CSS & Bootswatch Theme")),
+        setting(1, _("Theme"), "BOOTSTRAP_THEME", "flatly", "", _("Bootstrap CSS & Bootswatch Theme")),
         setting(2, _("Theme SASS Path"), "SASS_DIR", "dev/scss/", "", _("Bootstrap SASS & Bootswatch SASS Directory")),
         setting(3, _("All Instances View Style"), "VIEW_INSTANCES_LIST_STYLE", "grouped", "grouped,nongrouped", _("All instances list style")),
         setting(4, _("Logs per Page"), "LOGS_PER_PAGE", "100", "", _("Pagination for logs")),
