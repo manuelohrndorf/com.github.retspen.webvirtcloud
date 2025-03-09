@@ -78,11 +78,19 @@ def group_delete(request, pk):
 @superuser_only
 def user_list(request):
     users = User.objects.all()
+
+    # collect mailing list:
+    mailing_list = ""
+    for user in users:
+        if user.email:
+            mailing_list += user.first_name + " " + user.last_name + " <" + user.email + ">; "
+
     return render(
         request,
         "admin/user_list.html",
         {
             "users": users,
+            "mailing_list": mailing_list,
             "title": _("Users"),
         },
     )

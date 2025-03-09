@@ -6,7 +6,10 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block page_heading %}{{ title }}{% endblock page_heading %}
+{% block page_heading %}
+{{ title }}
+<a class="btn btn-success" title="{%trans "Mailing List" %}" onclick="copyToClipboard('{{mailing_list}}', '{%trans "Mailing List" %}')">{% bs_icon 'broadcast' %}</a>
+{% endblock page_heading %}
 
 {% block page_heading_extra %}
 <a href="{% url 'admin:user_create' %}" class="btn btn-success btn-header float-end">
@@ -78,4 +81,11 @@
 
 {% block script %}
 <script src="{% static "js/filter-table.js" %}"></script>
+<script>
+function copyToClipboard(copyText, subject) {
+    navigator.clipboard.writeText(copyText)
+        .then(() => alert("Copied " + subject + " to Clipboard."))
+        .catch(err => console.error("Failed to Copy " + subject + ":", err));
+}
+</script>
 {% endblock script %}
