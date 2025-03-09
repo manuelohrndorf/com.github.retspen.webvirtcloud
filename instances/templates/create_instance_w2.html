@@ -181,7 +181,26 @@
                                                                     <div class="row">
                                                                         <label class="col-sm-4 col-form-label">{% trans "MAC" %}</label>
                                                                         <div class="col-sm-7">
-                                                                            <input type="text" class="form-control" name="mac" maxlength="17" value="{{ mac_auto }}" required pattern="[a-zA-Z0-9:]+">
+                                                                            <div id="flavorMacInputContainer" style="display: none;">
+                                                                                <!-- Text input (hidden by default) -->
+                                                                                <input type="text" class="form-control" maxlength="17" value="{{ mac_auto }}" required pattern="[a-zA-Z0-9:]+">
+                                                                            </div>
+                                                                            <div id="flavorMacSelectContainer" style="display: block;">
+                                                                                <!-- Dropdown select (shown by default) -->
+                                                                                <select class="form-select" name="mac">
+                                                                                    {% for forwarded_mac in forwarded_macs %}
+                                                                                    <option value="{{ forwarded_mac }}" {% if loop.index == 1 %}selected{% endif %}>
+                                                                                        {{ forwarded_mac }}
+                                                                                    </option>
+                                                                                    {% endfor %}
+                                                                                </select>
+                                                                            </div>
+                                                                            <div class="form-check">
+                                                                                <input class="form-check-input" type="checkbox" id="flavorPortForwarding" onclick="togglePortForwarding('flavor')" onchange="togglePortForwarding('flavor')"  checked>
+                                                                                <label class="form-check-label" for="flavorPortForwarding">
+                                                                                    VM with forwarded SSH port.
+                                                                                </label>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                     <div class="row">
@@ -682,7 +701,26 @@
                                 </select>
                             </div>
                             <div class="col-sm-4">
-                                <input type="text" class="form-control" name="mac" maxlength="17" value="{{ mac_auto }}" required pattern="[a-zA-Z0-9:]+">
+                                <div id="templateMacInputContainer" style="display: none;">
+                                    <!-- Text input (hidden by default) -->
+                                    <input type="text" class="form-control" maxlength="17" value="{{ mac_auto }}" required pattern="[a-zA-Z0-9:]+">
+                                </div>
+                                <div id="templateMacSelectContainer" style="display: block;">
+                                    <!-- Dropdown select (shown by default) -->
+                                    <select class="form-select" name="mac">
+                                        {% for forwarded_mac in forwarded_macs %}
+                                        <option value="{{ forwarded_mac }}" {% if loop.index == 1 %}selected{% endif %}>
+                                            {{ forwarded_mac }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="templatePortForwarding" onclick="togglePortForwarding('template')" onchange="togglePortForwarding('flavor')" checked>
+                                    <label class="form-check-label" for="templatePortForwarding">
+                                        VM with forwarded SSH port.
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div class="row">
@@ -991,6 +1029,30 @@
             });
         });
     }
+</script>
+
+<script>
+function togglePortForwarding(prefix) {
+    var checkbox = document.getElementById(prefix + 'PortForwarding');
+    var macInputContainer = document.getElementById(prefix + 'MacInputContainer');
+    var macSelectContainer = document.getElementById(prefix + 'MacSelectContainer');
+
+    var macInputElement = macInputContainer.querySelector('input');
+    var macSelectElement = macSelectContainer.querySelector('select');
+
+    if (checkbox.checked) {
+        macInputContainer.style.display = 'none';  
+        macSelectContainer.style.display = 'block';
+        macSelectElement.setAttribute('name', 'mac');
+        macInputElement.removeAttribute('name');
+    } else {
+        macInputContainer.style.display = 'block';
+        macSelectContainer.style.display = 'none';
+        macInputElement.setAttribute('name', 'mac');
+        macSelectElement.removeAttribute('name'); 
+    }
+}
+
 </script>
 {% if request.user.is_superuser %}
     <script>

@@ -447,6 +447,16 @@ class wvmInstance(wvmConnect):
 
         return util.get_xml_path(self._XMLDesc(0), func=networks)
 
+    def forwarded_port(self):
+        """Map the MAC address to a port using a predefined dictionary."""
+        from webvirtcloud.settings import MAC_TO_PORT
+        networks = self.get_net_devices()
+        for network in networks:
+            mac_address = network['mac'] if networks else None
+            if mac_address in MAC_TO_PORT:
+                return MAC_TO_PORT.get(mac_address)
+        return ""
+
     def get_disk_devices(self):
         def disks(doc):
             result = []

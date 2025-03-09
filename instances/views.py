@@ -11,6 +11,7 @@ from accounts.models import UserInstance, UserSSHKey
 from admin.decorators import superuser_only
 from appsettings.models import AppSettings
 from appsettings.settings import app_settings
+from collections import OrderedDict
 from computes.models import Compute
 from django.conf import settings
 from django.contrib import messages
@@ -1643,6 +1644,21 @@ def create_instance_select_type(request, compute_id):
 
 
 @superuser_only
+def unassigned_forwarded_macs(request):
+    from webvirtcloud.settings import MAC_TO_PORT
+
+    forwarded_macs = OrderedDict.fromkeys(MAC_TO_PORT.keys())
+    for instance in Instance.objects.all():
+        networks = instance.proxy.get_net_devices()
+        for network in networks:
+            mac_address = network['mac'] if networks else None
+            if mac_address in MAC_TO_PORT:
+                del forwarded_macs[mac_address]
+
+    return forwarded_macs
+
+
+@superuser_only
 def create_instance(request, compute_id, arch, machine):
     """
     :param request:
@@ -1651,12 +1667,13 @@ def create_instance(request, compute_id, arch, machine):
     :param machine:
     :return:
     """
-
+    
     conn = None
     storages = list()
     networks = list()
     hypervisors = list()
     firmwares = list()
+    forwarded_macs = unassigned_forwarded_macs(request)
     meta_prealloc = False
     compute = get_object_or_404(Compute, pk=compute_id)
     flavors = Flavor.objects.filter().order_by("id")
