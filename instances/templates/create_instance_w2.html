@@ -101,7 +101,7 @@
                                                                 <div class="row">
                                                                     <label class="col-sm-4 col-form-label">{% trans "Name" %}</label>
                                                                     <div class="col-sm-7">
-                                                                        <input type="text" class="form-control" name="name"
+                                                                        <input type="text" class="form-control" id="flavorNameInput" name="name"
                                                                                placeholder="{% trans "Name" %}" maxlength="64" required
                                                                                pattern="[a-zA-Z0-9\.\-_]+">
                                                                         <input type="hidden" name="vcpu" value="{{ flavor.vcpu }}">
@@ -358,7 +358,7 @@
                     <div class="row">
                         <label class="col-sm-3 col-form-label">{% trans "Name" %}</label>
                         <div class="col-sm-7">
-                            <input type="text" class="form-control" name="name" placeholder="{% trans "Name" %}" maxlength="64" required pattern="[a-zA-Z0-9\.\-_]+">
+                            <input type="text" class="form-control" id="customNameInput" name="name" placeholder="{% trans "Name" %}" maxlength="64" required pattern="[a-zA-Z0-9\.\-_]+">
                         </div>
                     </div>
                     {% if firmwares %}
@@ -607,7 +607,7 @@
                         <div class="row">
                             <label class="col-sm-3 col-form-label">{% trans "Name" %}</label>
                             <div class="col-sm-7">
-                                <input type="text" class="form-control" name="name" placeholder="{% trans "Name" %}" maxlength="64" required pattern="[a-zA-Z0-9\.\-_]+">
+                                <input type="text" class="form-control" id="templateNameInput" name="name" placeholder="{% trans "Name" %}" maxlength="64" required pattern="[a-zA-Z0-9\.\-_]+">
                             </div>
                         </div>
                         {% if firmwares %}
@@ -625,7 +625,7 @@
                         <div class="row">
                             <label class="col-sm-3 col-form-label">{% trans "VCPU" %}</label>
                             <div class="col-sm-7">
-                                <input type="text" class="form-control" name="vcpu" value="1" maxlength="2" required pattern="[0-9]">
+                                <input type="text" class="form-control" name="vcpu" value="32" maxlength="2" required pattern="[0-9]">
                             </div>
                         </div>
                         <div class="row">
@@ -652,7 +652,7 @@
                         <div class="row">
                             <label class="col-sm-3 col-form-label">{% trans "RAM" %}</label>
                             <div class="col-sm-7">
-                                <input type="text" class="form-control" name="memory" value="512" maxlength="5" required pattern="[0-9]+">
+                                <input type="text" class="form-control" name="memory" value="32768" maxlength="5" required pattern="[0-9]+">
                             </div>
                             <label class="col-sm-1 col-form-label">{% trans "MB" %}</label>
                         </div>
@@ -1052,7 +1052,25 @@ function togglePortForwarding(prefix) {
         macSelectElement.removeAttribute('name'); 
     }
 }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get current date
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1; // JavaScript months are 0-indexed, so add 1
 
+        // Format the year and month as YYMM
+        const formattedDate = (year % 100).toString().padStart(2, '0') + (month).toString().padStart(2, '0');
+
+        // Set the value of the input
+        nameInput = document.getElementById('flavorNameInput');
+        nameInput.value = formattedDate + '-';
+        nameInput = document.getElementById('customNameInput');
+        nameInput.value = formattedDate + '-';
+        nameInput = document.getElementById('templateNameInput');
+        nameInput.value = formattedDate + '-';
+    });
 </script>
 {% if request.user.is_superuser %}
     <script>
