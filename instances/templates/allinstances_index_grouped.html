@@ -1,21 +1,22 @@
 {% load i18n %}
 {% load bootstrap_icons %}
-<table class="table table-hover sortable-theme-bootstrap" data-sortable>
-    <thead>
-        <tr>
-            <th scope="col" data-sortable="false"><a class="link-primary" href="#" id="hide-all-instances" onclick="hide_all_host_instances()">#</a></th>
-            <th scope="col">{% trans "Name" %}<br>{% trans "Description" %}</th>
-            <th scope="col" class="d-none d-sm-table-cell">{% trans "User"%}</th>
-            <th scope="col">{% trans "Status" %}</th>
-	    {% if app_settings.VM_DRBD_STATUS == 'True' %}
-	    <th scope="col">{% trans "Role/Disk" %}</th>
-	    {% endif %}
-            <th scope="col" class="d-none d-sm-table-cell">{% trans "VCPU" %}</th>
-            <th scope="col" class="d-none d-sm-table-cell">{% trans "Memory" %}</th>
-            <th scope="col" style="width:200px;" data-sortable="false">{% trans "Actions" %} & {% trans "Mem Usage" %}</th>
-        </tr>
-    </thead>
     {% for compute in computes %}
+    <table class="table table-hover sortable-theme-bootstrap" data-sortable="1">
+        <thead>
+            <tr>
+                <th scope="col" data-sortable-type="numeric">#</th>
+                <th scope="col">{% trans "Name" %}</th>
+                <th scope="col" class="d-none d-sm-table-cell">{% trans "User"%}</th>
+                <th scope="col" class="d-none d-sm-table-cell">{% trans "Status" %}</th>
+                {% if app_settings.VM_DRBD_STATUS == 'True' %}
+                <th scope="col" class="d-none d-sm-table-cell text-center">{% trans "Role/Disk" %}</th>
+                {% endif %}
+                <th scope="col" class="text-center" data-sortable-type="numeric">{% trans "Port" %}</th>
+                <th scope="col" class="d-none d-sm-table-cell text-center" data-sortable-type="numeric">{% trans "VCPU" %}</th>
+                <th scope="col" class="d-none d-sm-table-cell text-center"  data-sortable-type="storage">{% trans "Memory" %}</th>
+                <th scope="col" style="width:200px; cursor:pointer;" data-sortable="false" onclick="hide_all_host_instances()">{% trans "Actions" %} & {% trans "Mem Usage" %}</th>
+            </tr>
+        </thead>
         <tbody class="searchable">
             {% if compute.status is True and compute.instance_set.count > 0 %}
                 <tr class="table-secondary fw-bold border-bottom border-dark">
@@ -27,14 +28,15 @@
                         <span id="inst_count_badge_{{ compute.id }}" class="badge bg-secondary d-none">{{ compute.instance_set.count }}</span>
                     </td>
                     <td class="d-none d-sm-table-cell"></td>
-                    <td>
+                    <td class="d-none d-sm-table-cell">
                         <span class="text-success">{% trans "Connected" %}</span>
                     </td>
                     {% if app_settings.VM_DRBD_STATUS == 'True' %}
                         <td class="d-none d-sm-table-cell"></td>
                     {% endif %}
-                    <td class="d-none d-sm-table-cell text-center">{{ compute.cpu_count }}</td>
-                    <td class="d-none d-sm-table-cell text-right">{{ compute.ram_size|filesizeformat }}</td>
+                    <td></td>
+                    <td class="d-none d-sm-table-cell text-end">{{ compute.cpu_count }}</td>
+                    <td class="d-none d-sm-table-cell text-end">{{ compute.ram_size|filesizeformat }}</td>
                     <td>
                         <div class="progress">
                             <div class="progress-bar bg-success" role="progressbar" style="width: {{ compute.ram_usage }}%"
@@ -45,13 +47,13 @@
                 </tr>
                 {% for instance in compute.instance_set.all %}
                     <tr host="{{ compute.id }}">
-                        <td class="text-right">{{ forloop.counter }} </td>
+                        <td class="text-end">{{ forloop.counter }} </td>
                         <td>
                             <a class="link-primary" href="{% url 'instances:instance' instance.id %}">{{ instance.name }}</a>
                             <br>
                             <p class="m-0 small fst-italic">{{ instance.title }}</p>
                         </td>
-                        <td>
+                        <td class="d-none d-sm-table-cell">
                             <em>
                                 {% if instance.userinstance_set.all.count > 0 %}
                                 {{ instance.userinstance_set.all.0.user }}
@@ -61,7 +63,7 @@
                                 {% endif %}
                             </em>
                         </td>
-                        <td>
+                        <td class="d-none d-sm-table-cell">
                             {% if instance.proxy.instance.info.0 == 1 %}<span class="text-success">{% trans "Active" %}</span>{% endif %}
                             {% if instance.proxy.instance.info.0 == 5 %}<span class="text-danger">{% trans "Off" %}</span>{% endif %}
                             {% if instance.proxy.instance.info.0 == 3 %}
@@ -69,12 +71,20 @@
                             {% endif %}
                         </td>
                         {% if app_settings.VM_DRBD_STATUS == 'True' %}
-                        <td>
+                        <td class="d-none d-sm-table-cell">
                             {% if instance.drbd == "Primary/OK" or instance.drbd == "Secondary/OK" %}<span class="text-success">{% else %}<span class="text-danger">{% endif %}{{ instance.drbd }}</span>
                         </td>
                         {% endif %}
-                        <td>{{ instance.proxy.instance.info.3 }}</td>
-                        <td>{{ instance.cur_memory }} MB</td>
+                        <td class="text-end" 
+                            {% if instance.forwarded_port != '' %}
+                                onclick="copyToClipboard('ssh -C -L 4444:localhost:4444 -p {{ instance.forwarded_port }} seg@calculon.inf.unibe.ch', '{%trans "SSH Command with Tunnel" %}')"
+                                style="cursor: pointer;"
+                            {% endif %} 
+                            >
+                            {{ instance.forwarded_port }}
+                        </td>
+                        <td class="d-none d-sm-table-cell text-end">{{ instance.proxy.instance.info.3 }}</td>
+                        <td class="d-none d-sm-table-cell text-end">{{ instance.cur_memory_bytes|filesizeformat }}</td>
                         <td class="text-nowrap">
                             {% include 'instance_actions.html' %}
                         </td>
@@ -100,6 +110,11 @@ function hide_host_instances(host) {
     host_rows.toggle();
     $("span[id='collapse_host_instances_"+host+"']").toggleClass("bi bi-chevron-down ").toggleClass("bi bi-chevron-up");
     $("span[id='inst_count_badge_"+host+"']").toggleClass("d-none");
+}
+function copyToClipboard(copyText, subject) {
+    navigator.clipboard.writeText(copyText)
+        .then(() => alert("Copied " + subject + " to Clipboard."))
+        .catch(err => console.error("Failed to Copy " + subject + ":", err));
 }
 </script>
 {% endblock %}

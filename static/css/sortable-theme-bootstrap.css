@@ -27,6 +27,7 @@ table[data-sortable] th:not([data-sortable="false"]) {
 /* line 26, ../sass/_sortable.sass */
 table[data-sortable] th:after {
   content: "";
+  position: absolute;
   visibility: hidden;
   display: inline-block;
   vertical-align: inherit;
@@ -35,9 +36,7 @@ table[data-sortable] th:after {
   border-width: 5px;
   border-style: solid;
   border-color: transparent;
-  margin-right: 1px;
-  margin-left: 10px;
-  float: right;
+  margin-left: 5px;
 }
 /* line 40, ../sass/_sortable.sass */
 table[data-sortable] th[data-sorted="true"]:after {

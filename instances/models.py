@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from libvirt import VIR_DOMAIN_XML_SECURE
 from vrtManager.instance import wvmInstance
 from webvirtcloud.settings import QEMU_CONSOLE_LISTENER_ADDRESSES
+from webvirtcloud.settings import MAC_TO_PORT
 
 
 class Flavor(models.Model):
@@ -116,6 +117,10 @@ class Instance(models.Model):
     @cached_property
     def cur_memory(self):
         return self.proxy.get_cur_memory()
+    
+    @cached_property
+    def cur_memory_bytes(self):
+        return self.cur_memory * 1024 * 1024
 
     @cached_property
     def title(self):
@@ -128,6 +133,10 @@ class Instance(models.Model):
     @cached_property
     def networks(self):
         return self.proxy.get_net_devices()
+
+    @cached_property
+    def forwarded_port(self):
+        return self.proxy.forwarded_port()
 
     @cached_property
     def qos(self):
