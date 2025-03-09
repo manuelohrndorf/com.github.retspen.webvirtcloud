@@ -33,6 +33,6 @@ class AppsettingsConfig(AppConfig):
 
                 print(f"✔ Theme '{theme}' successfully recompiled at startup.")
 
-        except:
+        except (OperationalError, ProgrammingError):
             # Database isn't ready yet (e.g., during initial migrations)
             print("⚠ Database not ready. Skipping theme compilation.")
