@@ -10,9 +10,9 @@
             {% if app_settings.VM_DRBD_STATUS == 'True' %}
             <th scope="col" class="d-none d-sm-table-cell">{% trans 'Role/Disk' %}</th>
             {% endif %}
-            <th scope="col" class="text-center">{% trans "Port" %}</th>
-            <th scope="col" class="d-none d-sm-table-cell text-center">{% trans 'VCPU' %}</th>
-            <th scope="col" class="d-none d-sm-table-cell text-center">{% trans 'Memory' %}</th>
+            <th scope="col" class="text-center" data-sortable-type="numeric">{% trans "Port" %}</th>
+            <th scope="col" class="d-none d-sm-table-cell text-center" data-sortable-type="numeric">{% trans 'VCPU' %}</th>
+            <th scope="col" class="d-none d-sm-table-cell text-center" data-sortable-type="storage">{% trans 'Memory' %}</th>
             <th scope="col" data-sortable="false">{% trans 'Actions' %}</th>
         </tr>
     </thead>
