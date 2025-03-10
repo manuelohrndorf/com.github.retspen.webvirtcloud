@@ -60,12 +60,14 @@ class UserSSHKeyForm(ModelForm):
         key_parts = ssh_key.split()
 
         # Remove existing comment
+        comment = ""
         if len(key_parts) == 3:
+            comment = "-" + key_parts[2]
             key_parts = key_parts[:2] 
 
         # Add user name as comment
         if len(key_parts) == 2:
-            key_parts.append(self.user.username)
+            key_parts.append(self.user.username + comment)
             self.cleaned_data["keypublic"] = " ".join(key_parts)
 
         if not validate_ssh_key(self.cleaned_data["keypublic"]):
