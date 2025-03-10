@@ -23,7 +23,7 @@ OS_UUID = "iid-dswebvirtcloud"
 # 2. Optionally, restrict access to VM IPs with HTTPS only in conf\nginx\webvirtcloud.conf:
 #
 # server {
-#     location ~* ^/datasource/ {
+#     location /datasource/ {
 #         allow 192.168.122.0/24;  # Allow only VMs in this subnet
 #         deny all;  # Block all other IPs
 # 
@@ -31,7 +31,6 @@ OS_UUID = "iid-dswebvirtcloud"
 #         proxy_set_header X-Real-IP $remote_addr;
 #         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 #         proxy_set_header Host $host;
-#         proxy_set_header X-Forwarded-Proto https;
 #         proxy_connect_timeout 1800;
 #         proxy_read_timeout 1800;
 #         proxy_send_timeout 1800;
