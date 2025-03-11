@@ -27,7 +27,12 @@ RUN apt-get update -qqy \
 	libsasl2-modules \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY ./conf/requirements.txt /srv/webvirtcloud/conf/requirements.txt 
+# Copy only the requirements (speeds up subsequent builds)
+COPY ./webvirtcloud/conf/requirements.txt /srv/webvirtcloud/conf/requirements.txt 
+
+# Copy server specific config
+COPY ./config/settings/settings.py /srv/webvirtcloud/webvirtcloud/settings.py
+
 RUN chown -R www-data:www-data /srv/webvirtcloud
 
 # Setup webvirtcloud
@@ -40,7 +45,8 @@ RUN python3 -m venv venv && \
 	pip3 cache purge && \
 	chown -R www-data:www-data /srv/webvirtcloud
 
-COPY . /srv/webvirtcloud
+# Copy common sources
+COPY ./webvirtcloud /srv/webvirtcloud
 
 RUN . venv/bin/activate && \
 	python3 manage.py makemigrations && \
@@ -53,19 +59,33 @@ RUN printf "\n%s" "daemon off;" >> /etc/nginx/nginx.conf && \
 	rm /etc/nginx/sites-enabled/default && \
 	chown -R www-data:www-data /var/lib/nginx
 
-COPY conf/nginx/webvirtcloud.conf /etc/nginx/conf.d/
+COPY ./webvirtcloud/conf/nginx/webvirtcloud.conf /etc/nginx/conf.d/
 
 # Register services to runit
 RUN	mkdir /etc/service/nginx && \
 	mkdir /etc/service/nginx-log-forwarder && \
 	mkdir /etc/service/webvirtcloud && \
 	mkdir /etc/service/novnc
-COPY conf/runit/nginx				/etc/service/nginx/run
-COPY conf/runit/nginx-log-forwarder	/etc/service/nginx-log-forwarder/run
-COPY conf/runit/novncd.sh			/etc/service/novnc/run
-COPY conf/runit/webvirtcloud.sh		/etc/service/webvirtcloud/run
+COPY ./webvirtcloud/conf/runit/nginx				/etc/service/nginx/run
+COPY ./webvirtcloud/conf/runit/nginx-log-forwarder	/etc/service/nginx-log-forwarder/run
+COPY ./webvirtcloud/conf/runit/novncd.sh			/etc/service/novnc/run
+COPY ./webvirtcloud/conf/runit/webvirtcloud.sh		/etc/service/webvirtcloud/run
 
 # Define mountable directories.
 #VOLUME []
+
+# Copy server specific configs:
+COPY ./config/database/db.sqlite3 		/srv/webvirtcloud/db.sqlite3
+COPY ./config/theme/flatly 				/srv/webvirtcloud/dev/scss/bootswatch/flatly
+COPY ./config/wiki/README_USER_WIKI.md	/srv/webvirtcloud/wiki/content/README_USER_WIKI.md
+RUN chown -R www-data:www-data 			/srv/webvirtcloud
+RUN chmod -R 700 						/srv/webvirtcloud
+COPY ./config/ssh 						/var/www/.ssh
+RUN chown -R www-data 					/var/www/.ssh 
+RUN chmod -R 700 						/var/www/.ssh
+COPY ./config/nginx/nginx.conf 			/etc/nginx/nginx.conf
+COPY ./config/nginx/webvirtcloud.conf	/etc/nginx/conf.d/webvirtcloud.conf
+COPY ./config/ssl 						/etc/nginx/ssl
+RUN chmod -R 700 						/etc/nginx
 
 WORKDIR /srv/webvirtcloud
