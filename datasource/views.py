@@ -1,3 +1,4 @@
+import json
 import re
 import socket
 
@@ -13,18 +14,36 @@ OS_UUID = "iid-dswebvirtcloud"
 
 # To enable NoCloud datasource:
 #
-# 1. Allow unauthorized access in webvirtcloud/settings.py:
-#
-# LOGIN_REQUIRED_IGNORE_PATHS = [
-#     r"^/datasource/nocloud/meta-data$",
-#     r"^/datasource/nocloud/user-data$",
-# ]
+# 1. Allow unauthorized access in webvirtcloud/settings.py: ENABLE_DATASOURCE = True
 #
 # 2. Optionally, restrict access to VM IPs with HTTPS only in conf\nginx\webvirtcloud.conf:
 #
 # server {
+#     listen 443 ssl;
+#     ...
 #     location /datasource/ {
 #         allow 192.168.122.0/24;  # Allow only VMs in this subnet
+#         deny all;  # Block all other IPs
+# 
+#         proxy_pass http://127.0.0.1:8000;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto https;
+#         proxy_set_header Host $host;
+#         proxy_connect_timeout 1800;
+#         proxy_read_timeout 1800;
+#         proxy_send_timeout 1800;
+#         client_max_body_size 1024M;
+#     }
+#     ...
+# }
+# ...
+# server {
+#     listen 80;
+#     ...
+#     location /datasource/ {
+#         allow 192.168.122.0/24;  # Allow only VMs in this subnet
+#         allow 130.92.64.118;  # hydra.inf.unibe.ch
 #         deny all;  # Block all other IPs
 # 
 #         proxy_pass http://127.0.0.1:8000;
@@ -36,18 +55,13 @@ OS_UUID = "iid-dswebvirtcloud"
 #         proxy_send_timeout 1800;
 #         client_max_body_size 1024M;
 #     }
-#     ...
 # }
-# ...
-#
 
 def os_metadata_json(request):
     """
     :param request:
     :return:
     """
-    ip = get_client_ip(request)
-
     response = f"instance-id: {OS_UUID}"
     return HttpResponse(response, content_type="text/plain")
 
@@ -80,6 +94,46 @@ def os_userdata(request):
 
     # Return as plain text
     return HttpResponse(user_data, content_type="text/plain")
+
+
+def os_metadata_for_mac(request, mac):
+    """
+    Retrieve meta-data for a specific VM based on its MAC address.
+    """
+    mac = mac.lower().replace("-", ":")  # Normalize MAC format
+
+    # Find the instance with the matching MAC address
+    instance = None
+    for inst in Instance.objects.all():
+        net_devices = inst.proxy.get_net_devices()
+        for net in net_devices:
+            if net.get("mac") == mac:
+                instance = inst
+                break
+        if instance:
+            break
+
+    if not instance:
+        raise Http404("No VM found: " + mac)
+
+    # Retrieve associated SSH keys
+    instance_keys = []
+    userinstances = UserInstance.objects.filter(instance=instance)
+    for ui in userinstances:
+        keys = UserSSHKey.objects.filter(user=ui.user)
+        for key in keys:
+            instance_keys.append(key.keypublic)
+
+    # Construct meta-data response
+    metadata = {
+        "meta-data": {
+            "instance-id": f"vm-{instance.id}",
+            "local-hostname": get_hostname(instance.name),
+            "public-keys": instance_keys,
+        }
+    }
+
+    return HttpResponse(json.dumps(metadata), content_type="application/json")
 
 
 def get_hostname(vm_name: str) -> str:

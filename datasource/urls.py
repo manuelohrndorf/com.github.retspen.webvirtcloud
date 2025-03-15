@@ -5,5 +5,6 @@ from . import views
 urlpatterns = [
     path("nocloud/meta-data", views.os_metadata_json, name="ds_nocloud_metadata"),
     path( "nocloud/user-data", views.os_userdata, name="ds_nocloud_userdata"),
+    path("webvirtcloud/<mac>/meta-data", views.os_metadata_for_mac, name="ds_nocloud_metadata_for_mac"),
     path("vdi/<int:compute_id>/<vname>/", views.get_vdi_url, name="vdi_url"),
 ]
