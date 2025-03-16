@@ -57,45 +57,6 @@ OS_UUID = "iid-dswebvirtcloud"
 #     }
 # }
 
-def os_metadata_json(request):
-    """
-    :param request:
-    :return:
-    """
-    response = f"instance-id: {OS_UUID}"
-    return HttpResponse(response, content_type="text/plain")
-
-
-def os_userdata(request):
-    """
-    :param request:
-    :return:
-    """
-    ip = get_client_ip(request)
-    vname = get_vmname_by_ip(ip)
-
-    instance_keys = []
-    userinstances = UserInstance.objects.filter(instance__name=vname)
-
-    for ui in userinstances:
-        keys = UserSSHKey.objects.filter(user=ui.user)
-        for k in keys:
-            instance_keys.append(k.keypublic)
-
-    # Create the user data
-    user_data = "#cloud-config\n"
-    user_data += f"hostname: {get_hostname(vname)}\n"
-    #user_data += "manage_etc_hosts: true\n"
-    
-    if instance_keys:
-        user_data += "ssh_authorized_keys:"
-        for key in instance_keys:
-            user_data += f"\n  - {key}"
-
-    # Return as plain text
-    return HttpResponse(user_data, content_type="text/plain")
-
-
 def os_metadata_for_mac(request, mac):
     """
     Retrieve meta-data for a specific VM based on its MAC address.
@@ -166,17 +127,26 @@ def get_hostname(vm_name: str) -> str:
     return hostname if hostname else "vm-default"
 
 
-def get_client_ip(request):
+def get_vdi_url(request, compute_id, vname):
     """
     :param request:
+    :param vname:
     :return:
     """
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(",")[0].strip()  # Get the first (original) IP
-    else:
-        ip = request.META.get("REMOTE_ADDR")  # 127.0.0.1 if reverse proxy by NGINX
-    return ip
+    compute = get_object_or_404(Compute, pk=compute_id)
+
+    try:
+        conn = wvmInstance(
+            compute.hostname, compute.login, compute.password, compute.type, vname
+        )
+
+        fqdn = get_hostname(get_vmname_by_ip(compute.hostname))
+        url = f"{conn.get_console_type()}://{fqdn}:{conn.get_console_port()}"
+        response = url
+        return HttpResponse(response)
+    except libvirtError:
+        err = "Error getting VDI URL for %(name)s" % {"name": vname}
+        raise Http404(err)
 
 
 def get_vmname_by_ip(ip):
@@ -200,25 +170,3 @@ def get_vmname_by_ip(ip):
                 return instance.name  # Return the VM name
 
     return ip  # Default to returning the raw IP if not found
-
-
-def get_vdi_url(request, compute_id, vname):
-    """
-    :param request:
-    :param vname:
-    :return:
-    """
-    compute = get_object_or_404(Compute, pk=compute_id)
-
-    try:
-        conn = wvmInstance(
-            compute.hostname, compute.login, compute.password, compute.type, vname
-        )
-
-        fqdn = get_hostname(get_vmname_by_ip(compute.hostname))
-        url = f"{conn.get_console_type()}://{fqdn}:{conn.get_console_port()}"
-        response = url
-        return HttpResponse(response)
-    except libvirtError:
-        err = "Error getting VDI URL for %(name)s" % {"name": vname}
-        raise Http404(err)
