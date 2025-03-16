@@ -1644,16 +1644,19 @@ def create_instance_select_type(request, compute_id):
 
 
 @superuser_only
-def unassigned_forwarded_macs(request):
+def unassigned_forwarded_macs(request, compute_id):
     from webvirtcloud.settings import MAC_TO_PORT
 
     forwarded_macs = OrderedDict.fromkeys(MAC_TO_PORT.keys())
+    target_host = Compute.objects.get(id=compute_id)
+
     for instance in Instance.objects.all():
-        networks = instance.proxy.get_net_devices()
-        for network in networks:
-            mac_address = network['mac'] if networks else None
-            if mac_address in MAC_TO_PORT:
-                del forwarded_macs[mac_address]
+        if instance.compute == target_host:
+            networks = instance.proxy.get_net_devices()
+            for network in networks:
+                mac_address = network['mac'] if networks else None
+                if mac_address in MAC_TO_PORT:
+                    del forwarded_macs[mac_address]
 
     return forwarded_macs
 
@@ -1673,7 +1676,7 @@ def create_instance(request, compute_id, arch, machine):
     networks = list()
     hypervisors = list()
     firmwares = list()
-    forwarded_macs = unassigned_forwarded_macs(request)
+    forwarded_macs = unassigned_forwarded_macs(request, compute_id)
     meta_prealloc = False
     compute = get_object_or_404(Compute, pk=compute_id)
     flavors = Flavor.objects.filter().order_by("id")
