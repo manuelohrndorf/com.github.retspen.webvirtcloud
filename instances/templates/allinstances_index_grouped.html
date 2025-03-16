@@ -77,7 +77,7 @@
                         {% endif %}
                         <td class="text-end" 
                             {% if instance.forwarded_port != '' %}
-                                onclick="copyToClipboard('ssh -C -L 4444:localhost:4444 -p {{ instance.forwarded_port }} seg@calculon.inf.unibe.ch', '{%trans "SSH Command with Tunnel" %}')"
+                                onclick="copyToClipboard('ssh -C -L 4444:localhost:4444 -p {{ instance.forwarded_port }} seg@{{ compute.hostname }}', '{%trans "SSH Command with Tunnel" %}')"
                                 style="cursor: pointer;"
                             {% endif %} 
                             >
