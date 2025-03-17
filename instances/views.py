@@ -391,6 +391,10 @@ def force_off(request, pk):
 
 def destroy(request, pk):
     instance = get_instance(request.user, pk)
+    
+    # First, remove all owners linked to the instance
+    instance.userinstance_set.all().delete()
+
     try:
         userinstance = instance.userinstance_set.get(user=request.user)
     except Exception:
