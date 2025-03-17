@@ -178,6 +178,16 @@ def user_update_password(request, pk):
 def user_delete(request, pk):
     user = get_object_or_404(User, pk=pk)
     if request.method == "POST":
+
+        # Remove user from groups and permissions
+        user.groups.clear()
+        user.user_permissions.clear()
+
+        # Delete related objects
+        from accounts.models import UserAttributes, UserSSHKey
+        UserAttributes.objects.filter(user=user).delete()
+        UserSSHKey.objects.filter(user=user).delete()
+
         user.delete()
         return redirect("admin:user_list")
 
