@@ -5,7 +5,6 @@ from django.utils.translation import gettext_lazy as _
 from libvirt import VIR_DOMAIN_XML_SECURE
 from vrtManager.instance import wvmInstance
 from webvirtcloud.settings import QEMU_CONSOLE_LISTENER_ADDRESSES
-from webvirtcloud.settings import MAC_TO_PORT
 
 
 class Flavor(models.Model):
