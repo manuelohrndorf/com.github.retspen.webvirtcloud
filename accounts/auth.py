@@ -1,7 +1,12 @@
 from django.contrib.auth import get_user_model
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
+from datetime import datetime
 
 class AuthentikOIDCBackend(OIDCAuthenticationBackend):
+
+    def log(self, message):
+        with open("/tmp/oidc_backend.log", "a") as f:
+            f.write(f"[{datetime.utcnow()}] {message}\n")
 
     def create_user(self, claims):
         User = get_user_model()
@@ -20,4 +25,8 @@ class AuthentikOIDCBackend(OIDCAuthenticationBackend):
         user.last_name = claims.get("family_name", user.last_name)
         user.save()
         return user
+    
+#    def get_userinfo(self, access_token, id_token, payload):
+#        self.log(f"Payload: {payload}")
+#        return payload
             
