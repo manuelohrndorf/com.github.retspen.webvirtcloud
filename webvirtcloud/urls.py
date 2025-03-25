@@ -6,6 +6,7 @@ from drf_yasg import openapi
 from appsettings.views import appsettings
 from console.views import console
 from instances.views import index
+from mozilla_django_oidc import views as oidc_views
 
 
 schema_view = get_schema_view(
@@ -32,6 +33,9 @@ urlpatterns = [
     path("instances/", include("instances.urls")),
     path("i18n/", include("django.conf.urls.i18n")),
     path("logs/", include("logs.urls")),
+    path("oidc/authenticate/", oidc_views.OIDCAuthenticationRequestView.as_view(), name="oidc_authentication_init"),
+    path("oidc/callback/", oidc_views.OIDCAuthenticationCallbackView.as_view(), name="oidc_authentication_callback"),
+    path("oidc/logout/", oidc_views.OIDCLogoutView.as_view(), name="oidc_logout"),
     path('wiki/', include('wiki.urls', namespace='wiki')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/v1/', include("webvirtcloud.urls-api")),
