@@ -75,7 +75,6 @@ COPY ./webvirtcloud/conf/runit/webvirtcloud.sh		/etc/service/webvirtcloud/run
 #VOLUME []
 
 # Copy server specific configs:
-# COPY ./config/database/db.sqlite3 	/srv/webvirtcloud/db.sqlite3
 COPY ./config/theme/flatly 				/srv/webvirtcloud/dev/scss/bootswatch/flatly
 COPY ./config/wiki/README_USER_WIKI.md	/srv/webvirtcloud/wiki/content/README_USER_WIKI.md
 RUN chown -R www-data:www-data 			/srv/webvirtcloud
@@ -85,7 +84,5 @@ RUN chown -R www-data 					/var/www/.ssh
 RUN chmod -R 700 						/var/www/.ssh
 COPY ./config/nginx/nginx.conf 			/etc/nginx/nginx.conf
 COPY ./config/nginx/webvirtcloud.conf	/etc/nginx/conf.d/webvirtcloud.conf
-COPY ./config/ssl 						/etc/nginx/ssl
-RUN chmod -R 700 						/etc/nginx
 
 WORKDIR /srv/webvirtcloud
