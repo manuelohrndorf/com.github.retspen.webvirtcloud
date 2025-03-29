@@ -76,7 +76,6 @@ COPY ./webvirtcloud/conf/runit/webvirtcloud.sh		/etc/service/webvirtcloud/run
 
 # Copy server specific configs:
 COPY ./config/theme/flatly 				/srv/webvirtcloud/dev/scss/bootswatch/flatly
-COPY ./config/wiki/README_USER_WIKI.md	/srv/webvirtcloud/wiki/content/README_USER_WIKI.md
 RUN chown -R www-data:www-data 			/srv/webvirtcloud
 RUN chmod -R 700 						/srv/webvirtcloud
 COPY ./config/ssh 						/var/www/.ssh

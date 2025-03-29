@@ -16,7 +16,7 @@
             <div style="display: flex; align-items: center;">
                 <a href="/" style="display: flex; align-items: center; text-decoration: none;">
                     <img src="{% static 'logo.svg' %}" alt="SEG Logo" style="width: 64px; height: 64px; margin-right: 8px;">
-                    <h1 style="margin: 0;">SEGLab</h1>
+                    <h1 style="margin: 0;">SEGLab VMs</h1>
                 </a>
             </div>
             <p style="font-size: 12px; margin-top: 4px;">
@@ -38,12 +38,15 @@
             <input type="hidden" name="next" value="{{ next }}">
             <div class="d-grid">
                 <button id="btn-signin" class="btn btn-lg btn-success" type="submit">{% trans "Sign In" %}</button>
+                <hr>
+                <a href="{% url 'oidc_authentication_init' %}" class="btn btn-lg btn-success" role="button">
+                    Login with Authentik
+                </a>
             </div>
         </form>
     </div>
 </div>
 
-<a href="{% url 'oidc_authentication_init' %}">Login with Authentik</a>
 {% endblock %}
 
 {% block script %}

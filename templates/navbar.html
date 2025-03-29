@@ -7,7 +7,7 @@
   <div class="container">
     <a class="navbar-brand" href="{% url 'index' %}">
       <img src="{% static 'logo.svg' %}" alt="SEG Logo" style="width: 35px; height: 35px; margin-right: 2px;">
-      SEGLab
+      SEGLab VMs
     </a>
     <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -22,14 +22,8 @@
             <a class="nav-link" href="{% url 'computes' %}">{% bs_icon 'pc-display' %} {% trans "Computes" %}</a>
         </li>
         {% endif %}
-        <li class="nav-item">
-          <a class="nav-link" href="https://calculon.inf.unibe.ch:9000" target="_blank">{% bs_icon 'files' %}  {% trans "Portainer" %}</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="https://hydra.inf.unibe.ch" target="_blank">{% bs_icon 'card-list' %}  {% trans "Jupyter" %}</a>
-        </li>
         <li class="nav-item {% class_active request '^/wiki' %}">
-          <a class="nav-link" href="{% url 'wiki:index' %}">{% bs_icon 'info-circle' %}  {% trans "Wiki" %}</a>
+          <a class="nav-link" href="https://calculon.inf.unibe.ch:11000/en/virtual-machines" target="_blank">{% bs_icon 'info-circle' %}  {% trans "Wiki" %}</a>
         </li>
       </ul>
       <ul class="navbar-nav ms-auto">
