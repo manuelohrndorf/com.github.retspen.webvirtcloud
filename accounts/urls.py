@@ -4,12 +4,17 @@ from django.urls import path
 from django_otp.forms import OTPAuthenticationForm
 
 from . import views
-from .views import CustomLoginView
+from .views import CustomLoginView, OIDCAndLocalLogoutView
 
 app_name = "accounts"
 
+if getattr(settings, "ENABLE_OIDC", False):
+    logout_view = OIDCAndLocalLogoutView.as_view()
+else:
+    logout_view = LogoutView.as_view(template_name="logout.html")
+
 urlpatterns = [
-    path("logout/", LogoutView.as_view(template_name="logout.html"), name="logout"),
+    path("logout/", logout_view, name="logout"),
     path("profile/", views.profile, name="profile"),
     path("profile/<int:user_id>/", views.account, name="account"),
     path("change_password/", views.change_password, name="change_password"),

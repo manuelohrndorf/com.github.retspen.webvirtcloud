@@ -1,14 +1,16 @@
 from admin.decorators import superuser_only
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import get_user_model, update_session_auth_hash, login as auth_login
+from django.contrib.auth import get_user_model, update_session_auth_hash, login as auth_login, logout
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.forms import PasswordChangeForm
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
+from django.views import View
 from instances.models import Instance
+from urllib.parse import urlencode
 
 from accounts.forms import EmailOTPForm, ProfileForm, UserSSHKeyForm
 from accounts.models import *
@@ -29,6 +31,20 @@ class CustomLoginView(LoginView):
         username = form.cleaned_data['username']
         addlogmsg(username, "-", "-", "Failed Login Attempt")
         return self.render_to_response(self.get_context_data(form=form))
+
+
+class OIDCAndLocalLogoutView(View):
+    def get(self, request, *args, **kwargs):
+        logout(request)
+
+        idp_logout_url = getattr(settings, "OIDC_OP_LOGOUT_ENDPOINT", "")
+        post_logout_redirect_uri = getattr(settings, "OIDC_LOGOUT_REDIRECT_URL", "/")
+
+        if idp_logout_url:
+            return redirect(f"{idp_logout_url}?{urlencode({'post_logout_redirect_uri': post_logout_redirect_uri})}")
+        else:
+            return redirect(post_logout_redirect_uri)
+
 
 def profile(request):
     publickeys = UserSSHKey.objects.filter(user_id=request.user.id)
