@@ -1,4 +1,5 @@
 from appsettings.settings import app_settings
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.forms import EmailField, Form, ModelForm, ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -35,6 +36,15 @@ class ProfileForm(ModelForm):
     class Meta:
         model = get_user_model()
         fields = ("first_name", "last_name", "email")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if settings.ENABLE_OIDC:
+            # Make name and email fields read-only
+            self.fields["first_name"].disabled = True
+            self.fields["last_name"].disabled = True
+            self.fields["email"].disabled = True
 
 
 class UserSSHKeyForm(ModelForm):

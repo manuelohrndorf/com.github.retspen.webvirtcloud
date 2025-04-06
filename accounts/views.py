@@ -52,10 +52,18 @@ def profile(request):
     ssh_key_form = UserSSHKeyForm()
 
     if profile_form.is_valid():
-        profile_form.save()
+        user = profile_form.save(commit=False)
+        
+        if settings.ENABLE_OIDC:
+            # Revert any values
+            user.first_name = request.user.first_name
+            user.last_name = request.user.last_name
+            user.email = request.user.email
+
+        user.save()
         messages.success(request, _("Profile updated"))
         return redirect("accounts:profile")
-
+    
     return render(
         request,
         "profile.html",

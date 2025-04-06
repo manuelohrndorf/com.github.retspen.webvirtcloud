@@ -8,6 +8,12 @@ class AuthentikOIDCBackend(OIDCAuthenticationBackend):
         with open("/tmp/oidc_backend.log", "a") as f:
             f.write(f"[{datetime.utcnow()}] {message}\n")
 
+    def get_username(self, claims):
+        """
+        Override this to return username from claims instead of email.
+        """
+        return claims.get("preferred_username") or claims["sub"]
+
     def create_user(self, claims):
         User = get_user_model()
         user = User.objects.create_user(
