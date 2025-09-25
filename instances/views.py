@@ -1984,17 +1984,65 @@ def flavor_delete(request, pk):
         {"object": flavor},
     )
 
-INSTRUCTIONS = {
-    "title": "Enable QEMU Guest Agent",
-    "html": """
+GUEST_AGENT_INSTRUCTIONS = {
+    "title": "Enable Guest Agent in VM",
+    "content": """
 <ol class='mb-2'>
-  <li><b>Install &amp; start agent inside the guest (Ubuntu/Debian):</b>
+  <li><b>Install &amp; start agent inside the guest VM (Ubuntu/Debian):</b>
 <pre>
 sudo apt update
 sudo apt install -y qemu-guest-agent
 sudo systemctl enable --now qemu-guest-agent
 </pre>
   </li>
+  <li>Re-run this action.</li>
+</ol>
+""".strip()
+}
+
+RUST_DESK_CONNECTION = {
+    "title": "RustDesk Connection",
+    "content": """
+<p><strong>ID:</strong> <span id="rustdesk-id">{rust_id}</span></p>
+<p><strong>Password:</strong> <span id="rustdesk-password">{password}</span></p>
+""".strip()
+}
+
+RUST_DESK_INSTALL = {
+    "title": "Install RustDesk in VM",
+    "content": """
+<ol class='mb-2'>
+  <li><b>Install dependencies:</b>
+<pre>
+sudo apt update
+sudo apt install -y wget
+</pre>
+  </li>
+
+  <li><b>Download the latest RustDesk .deb package (for amd64):</b>
+<pre>
+wget https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb
+</pre>
+  </li>
+
+  <li><b>Install RustDesk:</b>
+<pre>
+sudo apt install -y ./rustdesk-*.deb
+</pre>
+  </li>
+
+  <li><b>Enable and start the RustDesk service (so it runs at boot):</b>
+<pre>
+sudo systemctl enable --now rustdesk
+</pre>
+  </li>
+
+  <li><b>Verify installation:</b>
+<pre>
+rustdesk --version
+</pre>
+  </li>
+
   <li>Re-run this action.</li>
 </ol>
 """.strip()
@@ -2014,26 +2062,40 @@ def rustdesk(request, pk):
     ok, reason = utils.ensure_guest_agent(uri, domain, env)
     if not ok:
         return JsonResponse({
-            "needs_agent": True,
-            "reason": reason,
-            "instructions_title": INSTRUCTIONS["title"],
-            "instructions_html": INSTRUCTIONS["html"],
+            "title": GUEST_AGENT_INSTRUCTIONS["title"],
+            "content": GUEST_AGENT_INSTRUCTIONS["content"],
         }, status=428)  # 428 Precondition Required
 
     # proceed with RustDesk
-    password = utils.rand_pw(16)
-
     try:
-        code, _, err = utils.guest_exec(uri, domain, "/usr/bin/rustdesk", ["--password", password], env)
+        # Check if RustDesk is installed:
+        code, out, err = utils.guest_exec(uri, domain, "/bin/sh", ["-c", "command -v rustdesk"], env)
+        if not(code == 0 and out.strip()):
+            return JsonResponse({
+                "title": RUST_DESK_INSTALL["title"],
+                "content": RUST_DESK_INSTALL["content"],
+            }, status=428)  # 428 Precondition Required
+
+        # Get RustDesk ID:
+        code, rust_id, err = utils.guest_exec(uri, domain, "rustdesk", ["--get-id"], env)
+        if code != 0 or not rust_id:
+            return JsonResponse({"title": "RustDesk ID Error", "content": f"Get ID failed (exit {code}): {err or 'no output'}"}, status=500)
+        
+        # Set RustDesk password:
+        password = utils.rand_pw(16)
+        code, _, err = utils.guest_exec(uri, domain, "rustdesk", ["--password", password], env)
         if code != 0:
-            return JsonResponse({"error": f"Set password failed (exit {code}): {err}"}, status=500)
-
-        code, out, err = utils.guest_exec(uri, domain, "/usr/bin/rustdesk", ["--get-id"], env)
-        if code != 0 or not out:
-            return JsonResponse({"error": f"Get ID failed (exit {code}): {err or 'no output'}"}, status=500)
-
-        return JsonResponse({"id": out, "password": password})
+            return JsonResponse({"title": "RustDesk Passsword Error", "content": f"Set password failed (exit {code}): {err}"}, status=500)
+        
+        rust_id = rust_id.strip()
+        return JsonResponse({
+                "title": RUST_DESK_CONNECTION["title"],
+                "content": RUST_DESK_CONNECTION["content"].format(
+                    rust_id=rust_id,
+                    password=password,
+                ),
+            }, status=200)
     except TimeoutError as e:
-        return JsonResponse({"error": str(e)}, status=504)
+        return JsonResponse({"title": "Timeout Error", "content": str(e)}, status=504)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"title": "Error", "content": str(e)}, status=500)

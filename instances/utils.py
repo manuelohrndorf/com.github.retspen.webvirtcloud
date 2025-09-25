@@ -215,10 +215,10 @@ def get_clone_disk_name(disk, prefix, clone_name=""):
         image = f"{disk['image']}-clone"
     return image
 
-SAFE_ALPHABET = string.ascii_letters + string.digits
+RAND_PW_SAFE_ALPHABET = string.ascii_letters + string.digits
 
 def rand_pw(n: int = 16) -> str:
-    return "".join(secrets.choice(SAFE_ALPHABET) for _ in range(n))
+    return "".join(secrets.choice(RAND_PW_SAFE_ALPHABET) for _ in range(n))
 
 def build_uri(inst) -> str:
     host = getattr(inst.compute, "hostname", None) or getattr(inst.compute, "host", None)
@@ -228,10 +228,11 @@ def build_uri(inst) -> str:
         raise RuntimeError("Compute host not configured")
     return f"qemu+ssh://{user}@{host}:{port}/system"
 
+# ---------- Begin: Guest Agent ----------
+
 def default_env() -> dict:
     env = os.environ.copy()
     env["LIBVIRT_SSH_OPTIONS"] = (
-        "-i /app/keys/id_ed25519 "
         "-o StrictHostKeyChecking=accept-new "
         "-o UserKnownHostsFile=/app/known_hosts"
     )
@@ -264,8 +265,6 @@ def guest_exec(uri: str, domain: str, path: str, args: list[str], env: dict, wai
         if time.time() > deadline:
             raise TimeoutError("guest-exec timed out")
         time.sleep(0.2)
-
-# ---------- Guest agent checks ----------
 
 def has_agent_channel(uri: str, domain: str, env: dict) -> bool:
     """
@@ -301,3 +300,5 @@ def ensure_guest_agent(uri: str, domain: str, env: dict) -> tuple[bool, str]:
     if not agent_ping(uri, domain, env):
         return False, "unresponsive"
     return True, "ok"
+
+# ---------- End: Guest Agent ----------

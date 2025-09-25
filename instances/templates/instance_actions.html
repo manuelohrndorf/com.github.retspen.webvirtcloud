@@ -14,6 +14,7 @@
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Suspend" %}">{% bs_icon 'pause-fill' %}</a>
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Power Off" %}">{% bs_icon 'power' %}</a>
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Power Cycle" %}">{% bs_icon 'repeat' %}</a>
+        <a class="btn btn-sm btn-secondary disabled" title="{% trans "Set RustDesk Password" %}">{% bs_icon 'display' %}</a>
         <button class="btn btn-sm btn-secondary disabled" title="{% trans "VNC Console" %}" disabled>
             <span>{% bs_icon 'eye-fill' %}</span>
         </button>
@@ -23,23 +24,24 @@
             {% bs_icon 'play-fill' %}
         </a>
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Suspend" %}">{% bs_icon 'pause-fill' %}</a>
-        <a class="btn btn-sm btn-secondary" href="{% url 'instances:force_off' instance.id %}" title="{% trans "Force Off" %}">
+        <a class="btn btn-sm btn-secondary disabled" href="{% url 'instances:force_off' instance.id %}" title="{% trans "Force Off" %}">
             {% bs_icon 'power' %}
         </a>
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Power Cycle" %}">{% bs_icon 'repeat' %}</a>
+        <a class="btn btn-sm btn-secondary disabled" title="{% trans "Set RustDesk Password" %}">{% bs_icon 'display' %}</a>
         <button class="btn btn-sm btn-secondary disabled" title="{% trans "VNC Console" %}" disabled>
             <span>{% bs_icon 'eye-fill' %}</span>
         </button>
     {% endif %}
     {% if instance.proxy.instance.info.0 == 1 %}
         <a class="btn btn-sm btn-secondary disabled" onclick="showPleaseWaitDialog()" title="{% trans "Power On" %}">{% bs_icon 'play-fill' %}</a>
-        <a class="btn btn-sm btn-secondary" href="{% url 'instances:suspend' instance.id %}"
-            title="{% trans "Suspend" %}">{% bs_icon 'pause-fill' %}</a>
-        <a class="btn btn-sm btn-secondary" href="{% url 'instances:poweroff' instance.id %}">{% bs_icon 'power' %}</a>
-        <a class="btn btn-sm btn-secondary" href="{% url 'instances:powercycle' instance.id %}">{% bs_icon 'repeat' %}</a>
-        <a class="btn btn-sm btn-secondary" href="#" data-url="{% url 'instances:rustdesk' instance.id %}"
-            onclick="return fetchRustDesk(event, this.dataset.url);" title="{% trans 'RustDesk' %}">
-            {% bs_icon 'key-fill' %}
+        <a class="btn btn-sm btn-secondary" href="{% url 'instances:suspend' instance.id %}" title="{% trans "Suspend" %}">{% bs_icon 'pause-fill' %}</a>
+        <a class="btn btn-sm btn-secondary" href="{% url 'instances:poweroff' instance.id %}" title="{% trans "Power Off" %}">{% bs_icon 'power' %}</a>
+        <a class="btn btn-sm btn-secondary" href="{% url 'instances:powercycle' instance.id %}" title="{% trans "Power Cycle" %}">{% bs_icon 'repeat' %}</a>
+        <a class="btn btn-sm btn-secondary rustdesk-btn" href="#" data-url="{% url 'instances:rustdesk' instance.id %}"
+          onclick="return fetchRustDesk(event, this, this.dataset.url);" title="{% trans "Set RustDesk Password" %}">
+          <span data-role="icon" class="align-middle">{% bs_icon 'display' %}</span>
+          <span data-role="spinner" class="spinner-border spinner-border-sm align-middle d-none" role="status" aria-hidden="true"></span>
         </a>
         <button class="btn btn-sm btn-secondary" type="button" onclick='open_console("{{ instance.compute.id }}-{{ instance.get_uuid }}")'
             title="{% trans "Console" %}">
@@ -60,25 +62,6 @@
   </div></div>
 </div>
 
-<!-- RustDesk modal -->
-<div class="modal fade" id="rustdeskModal" tabindex="-1" aria-labelledby="rustdeskLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="rustdeskLabel">RustDesk Access</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p><strong>ID:</strong> <span id="rustdesk-id"></span></p>
-        <p><strong>Password:</strong> <span id="rustdesk-password"></span></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 {% block script %}
 <script>
     function open_console(uuid) {
@@ -88,35 +71,44 @@
 </script>
 
 <script>
-async function fetchRustDesk(e, url) {
+async function fetchRustDesk(e, el, url) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
+
+  // Re-entry guard
+  if (el.dataset.busy === '1') return false;
+  el.dataset.busy = '1';
+
+  // Show spinner, hide icon
+  const iconEl    = el.querySelector('[data-role="icon"]');
+  const spinnerEl = el.querySelector('[data-role="spinner"]');
+  iconEl.classList.add('d-none');
+  spinnerEl.classList.remove('d-none');
+  el.classList.add('disabled');
+  el.setAttribute('aria-disabled', 'true');
+  el.style.pointerEvents = 'none';
 
   try {
     const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     const text = await res.text(); // read once
     let data;
     try { data = JSON.parse(text); } catch { data = null; }
-
-    if (!res.ok) {
-      // Agent missing/unresponsive?
-      if (data && data.needs_agent) {
-        const title = data.instructions_title || "Enable QEMU Guest Agent";
-        document.getElementById("infoLabel").textContent = title;
-        document.getElementById("infoModalBody").innerHTML = data.instructions_html || "Guest agent required.";
-        new bootstrap.Modal(document.getElementById("infoModal")).show();
-        return false;
-      }
-      alert("Error: " + (text || res.statusText));
-      return false;
-    }
-
-    // Normal success
-    document.getElementById("rustdesk-id").textContent = data.id || "";
-    document.getElementById("rustdesk-password").textContent = data.password || "";
-    new bootstrap.Modal(document.getElementById("rustdeskModal")).show();
+    const title = data.title || "Info";
+    const content = data.content || "";
+    document.getElementById("infoLabel").textContent = title;
+    document.getElementById("infoModalBody").innerHTML = content;
+    new bootstrap.Modal(document.getElementById("infoModal")).show();
   } catch (err) {
     alert("Error: " + err);
+  } finally {
+    // Restore UI
+    spinnerEl.classList.add('d-none');
+    iconEl.classList.remove('d-none');
+    el.classList.remove('disabled');
+    el.removeAttribute('aria-disabled');
+    el.style.pointerEvents = '';
+    el.dataset.busy = '';
   }
+
   return false;
 }
 </script>
