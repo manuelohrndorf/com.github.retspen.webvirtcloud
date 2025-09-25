@@ -1,6 +1,4 @@
-import os
-import random
-import string
+import  os, random, string, json, time, base64, subprocess, secrets, xml.etree.ElementTree as ET
 
 from accounts.models import UserInstance, UserAttributes
 from appsettings.settings import app_settings
@@ -216,3 +214,90 @@ def get_clone_disk_name(disk, prefix, clone_name=""):
     else:
         image = f"{disk['image']}-clone"
     return image
+
+SAFE_ALPHABET = string.ascii_letters + string.digits
+
+def rand_pw(n: int = 16) -> str:
+    return "".join(secrets.choice(SAFE_ALPHABET) for _ in range(n))
+
+def build_uri(inst) -> str:
+    host = getattr(inst.compute, "hostname", None) or getattr(inst.compute, "host", None)
+    user = getattr(inst.compute, "login", None) or "root"
+    port = getattr(inst.compute, "ssh_port", 22)
+    if not host:
+        raise RuntimeError("Compute host not configured")
+    return f"qemu+ssh://{user}@{host}:{port}/system"
+
+def default_env() -> dict:
+    env = os.environ.copy()
+    env["LIBVIRT_SSH_OPTIONS"] = (
+        "-i /app/keys/id_ed25519 "
+        "-o StrictHostKeyChecking=accept-new "
+        "-o UserKnownHostsFile=/app/known_hosts"
+    )
+    return env
+
+def _run(cmd: list[str], env: dict) -> str:
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+    if p.returncode != 0:
+        raise RuntimeError(p.stderr.strip() or p.stdout.strip())
+    return p.stdout
+
+def qga(uri: str, domain: str, payload: dict, env: dict, timeout: int = 10) -> dict:
+    out = _run(["virsh", "-c", uri, "qemu-agent-command", domain, json.dumps(payload), "--timeout", str(timeout)], env)
+    return json.loads(out)
+
+def guest_exec(uri: str, domain: str, path: str, args: list[str], env: dict, wait: int = 15) -> tuple[int, str, str]:
+    start = qga(uri, domain, {"execute":"guest-exec","arguments":{"path":path,"arg":args,"capture-output":True}}, env, wait)
+    pid = start["return"]["pid"]
+    deadline = time.time() + wait
+    while True:
+        st = qga(uri, domain, {"execute":"guest-exec-status","arguments":{"pid":pid}}, env, wait)
+        ret = st["return"]
+        if ret.get("exited"):
+            code = ret.get("exitcode", 0)
+            out_b64 = ret.get("out-data") or ""
+            err_b64 = ret.get("err-data") or ""
+            out = base64.b64decode(out_b64).decode(errors="ignore") if out_b64 else ""
+            err = base64.b64decode(err_b64).decode(errors="ignore") if err_b64 else ""
+            return code, out.strip(), err.strip()
+        if time.time() > deadline:
+            raise TimeoutError("guest-exec timed out")
+        time.sleep(0.2)
+
+# ---------- Guest agent checks ----------
+
+def has_agent_channel(uri: str, domain: str, env: dict) -> bool:
+    """
+    Check VM XML for the QGA virtio channel 'org.qemu.guest_agent.0'.
+    """
+    xml = _run(["virsh", "-c", uri, "dumpxml", domain], env)
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return False
+    for ch in root.findall(".//devices/channel"):
+        tgt = ch.find("target")
+        if tgt is not None and tgt.get("type") == "virtio" and tgt.get("name") == "org.qemu.guest_agent.0":
+            return True
+    return False
+
+def agent_ping(uri: str, domain: str, env: dict, timeout: int = 5) -> bool:
+    """
+    Issue 'guest-ping'. Returns True if QGA responds.
+    """
+    try:
+        qga(uri, domain, {"execute": "guest-ping"}, env, timeout)
+        return True
+    except Exception:
+        return False
+
+def ensure_guest_agent(uri: str, domain: str, env: dict) -> tuple[bool, str]:
+    """
+    Returns (ok, reason) where reason in {'missing_channel','unresponsive','ok'}.
+    """
+    if not has_agent_channel(uri, domain, env):
+        return False, "missing_channel"
+    if not agent_ping(uri, domain, env):
+        return False, "unresponsive"
+    return True, "ok"

@@ -84,4 +84,6 @@ urlpatterns = [
     path("random_mac_address/", views.random_mac_address, name="random_mac_address"),
     path("check_instance/<vname>/", views.check_instance, name="check_instance"),
     path("<int:pk>/sshkeys/", views.sshkeys, name="sshkeys"),
+    path("<int:pk>/rustdesk/", views.rustdesk, name="rustdesk"),
+
 ]

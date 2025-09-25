@@ -17,6 +17,7 @@ RUN apt-get update -qqy \
 	python3-dev \
 	python3-lxml \
 	libvirt-dev \
+	libvirt-clients \
 	zlib1g-dev \
 	nginx \
 	pkg-config \

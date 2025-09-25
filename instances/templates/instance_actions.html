@@ -37,17 +37,87 @@
             title="{% trans "Suspend" %}">{% bs_icon 'pause-fill' %}</a>
         <a class="btn btn-sm btn-secondary" href="{% url 'instances:poweroff' instance.id %}">{% bs_icon 'power' %}</a>
         <a class="btn btn-sm btn-secondary" href="{% url 'instances:powercycle' instance.id %}">{% bs_icon 'repeat' %}</a>
+        <a class="btn btn-sm btn-secondary" href="#" data-url="{% url 'instances:rustdesk' instance.id %}"
+            onclick="return fetchRustDesk(event, this.dataset.url);" title="{% trans 'RustDesk' %}">
+            {% bs_icon 'key-fill' %}
+        </a>
         <button class="btn btn-sm btn-secondary" type="button" onclick='open_console("{{ instance.compute.id }}-{{ instance.get_uuid }}")'
             title="{% trans "Console" %}">
             <span>{% bs_icon 'eye-fill' %}</span>
         </button>
     {% endif %}
 </form>
+
+<!-- Generic info modal -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title" id="infoLabel">Info</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body"><div id="infoModalBody"></div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+  </div></div>
+</div>
+
+<!-- RustDesk modal -->
+<div class="modal fade" id="rustdeskModal" tabindex="-1" aria-labelledby="rustdeskLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rustdeskLabel">RustDesk Access</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>ID:</strong> <span id="rustdesk-id"></span></p>
+        <p><strong>Password:</strong> <span id="rustdesk-password"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% block script %}
 <script>
     function open_console(uuid) {
         url = '{% url 'console' %}?token=' + uuid + '';
         window.open(url, '', 'width=850,height=650')
     }
+</script>
+
+<script>
+async function fetchRustDesk(e, url) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+
+  try {
+    const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const text = await res.text(); // read once
+    let data;
+    try { data = JSON.parse(text); } catch { data = null; }
+
+    if (!res.ok) {
+      // Agent missing/unresponsive?
+      if (data && data.needs_agent) {
+        const title = data.instructions_title || "Enable QEMU Guest Agent";
+        document.getElementById("infoLabel").textContent = title;
+        document.getElementById("infoModalBody").innerHTML = data.instructions_html || "Guest agent required.";
+        new bootstrap.Modal(document.getElementById("infoModal")).show();
+        return false;
+      }
+      alert("Error: " + (text || res.statusText));
+      return false;
+    }
+
+    // Normal success
+    document.getElementById("rustdesk-id").textContent = data.id || "";
+    document.getElementById("rustdesk-password").textContent = data.password || "";
+    new bootstrap.Modal(document.getElementById("rustdeskModal")).show();
+  } catch (err) {
+    alert("Error: " + err);
+  }
+  return false;
+}
 </script>
 {% endblock script %}

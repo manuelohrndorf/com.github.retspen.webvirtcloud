@@ -15,9 +15,9 @@ from collections import OrderedDict
 from computes.models import Compute
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.models import User
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_noop as _
@@ -1983,3 +1983,57 @@ def flavor_delete(request, pk):
         "common/confirm_delete.html",
         {"object": flavor},
     )
+
+INSTRUCTIONS = {
+    "title": "Enable QEMU Guest Agent",
+    "html": """
+<ol class='mb-2'>
+  <li><b>Install &amp; start agent inside the guest (Ubuntu/Debian):</b>
+<pre>
+sudo apt update
+sudo apt install -y qemu-guest-agent
+sudo systemctl enable --now qemu-guest-agent
+</pre>
+  </li>
+  <li>Re-run this action.</li>
+</ol>
+""".strip()
+}
+
+@login_required
+def rustdesk(request, pk):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Not allowed")
+
+    inst = Instance.objects.get(pk=pk)
+    uri = utils.build_uri(inst)
+    domain = inst.name  # or inst.get_uuid()
+    env = utils.default_env()
+
+    # --- check agent ---
+    ok, reason = utils.ensure_guest_agent(uri, domain, env)
+    if not ok:
+        return JsonResponse({
+            "needs_agent": True,
+            "reason": reason,
+            "instructions_title": INSTRUCTIONS["title"],
+            "instructions_html": INSTRUCTIONS["html"],
+        }, status=428)  # 428 Precondition Required
+
+    # proceed with RustDesk
+    password = utils.rand_pw(16)
+
+    try:
+        code, _, err = utils.guest_exec(uri, domain, "/usr/bin/rustdesk", ["--password", password], env)
+        if code != 0:
+            return JsonResponse({"error": f"Set password failed (exit {code}): {err}"}, status=500)
+
+        code, out, err = utils.guest_exec(uri, domain, "/usr/bin/rustdesk", ["--get-id"], env)
+        if code != 0 or not out:
+            return JsonResponse({"error": f"Get ID failed (exit {code}): {err or 'no output'}"}, status=500)
+
+        return JsonResponse({"id": out, "password": password})
+    except TimeoutError as e:
+        return JsonResponse({"error": str(e)}, status=504)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
