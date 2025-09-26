@@ -40,6 +40,13 @@ from . import utils
 from .forms import ConsoleForm, FlavorForm, NewVMForm
 from .models import Flavor
 
+from webvirtcloud.settings import (
+    RUST_DESK_CONFIG_EXPORT_STRING,
+    RUST_DESK_CONFIG_ID_SERVER,
+    RUST_DESK_CONFIG_RELAY_SERVER,
+    RUST_DESK_CONFIG_SERVER_KEY,
+    RUST_DESK_INSTRUCTIONS_INSTALLATION
+)
 
 def index(request):
     instances = None
@@ -2014,7 +2021,8 @@ def rustdesk(request, pk):
         if not(code == 0 and out.strip()):
             return JsonResponse({
                 "title": "Install RustDesk in VM",
-                "content": render_to_string("rustdesk_install.html", {"instance": inst}),
+                "content": render_to_string("rustdesk_install.html", {"instance": inst, 
+                                                                      "RUST_DESK_INSTRUCTIONS_INSTALLATION": RUST_DESK_INSTRUCTIONS_INSTALLATION}),
             }, status=428)  # 428 Precondition Required
 
         # Get RustDesk ID:
@@ -2025,7 +2033,12 @@ def rustdesk(request, pk):
         rust_id = rust_id.strip()
         return JsonResponse({
                 "title": "RustDesk Connection",
-                "content": render_to_string("rustdesk_config.html", {"instance": inst,"rust_id": rust_id, "password": password}),
+                "content": render_to_string("rustdesk_config.html", {"instance": inst, 
+                                                                     "rust_id": rust_id, 
+                                                                     "RUST_DESK_CONFIG_EXPORT_STRING": RUST_DESK_CONFIG_EXPORT_STRING,
+                                                                     "RUST_DESK_CONFIG_ID_SERVER": RUST_DESK_CONFIG_ID_SERVER,
+                                                                     "RUST_DESK_CONFIG_RELAY_SERVER": RUST_DESK_CONFIG_RELAY_SERVER,
+                                                                     "RUST_DESK_CONFIG_SERVER_KEY": RUST_DESK_CONFIG_SERVER_KEY}),
             }, status=200)
     except TimeoutError as e:
         return JsonResponse({"title": "Timeout Error", "content": str(e)}, status=504)

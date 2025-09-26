@@ -5,15 +5,15 @@
 <ol class='mb-2'>
     <li>
         <a href="#"
-            onclick="return copyRustDeskConfig('9JSP4s2dDVlZT12cD9GO5YzZ1gjaYZzU2pmSVZzV0JEZ3QFMkVme5J3VHp3aGJiOikXZrJCLiIiOikGchJCLicTMxEjM6g2YuUmYp5WduYmbp5ibvxWdjxWYjJiOikXYsVmciwiIoNmLlJWauVnLm5Wau42bsV3YsF2YiojI0N3boJye');">
+            onclick="return copyRustDeskConfig('{{ RUST_DESK_CONFIG_EXPORT_STRING }}');">
             Click this link to copy the server configuration to the clipboard.
         </a>
     </li>
     <li>Then click the 'Settings &gt; Network &gt; ID/Relay server &gt; Import server config' icon.
         <ul class='mb-2'>
-            <li><b>ID server</b> (defaults to TCP 21116)<b>:</b> calculon.inf.unibe.ch</li>
-            <li><b>Relay server:</b> calculon.inf.unibe.ch: 21117</li>
-            <li><b>Key:</b> FkzGWryzed0T7dBtW6UJjvS6Xj85g698oCsmSfUCwk8=</li>
+            <li><b>ID server:</b> {{ RUST_DESK_CONFIG_ID_SERVER }}</li>
+            <li><b>Relay server:</b> {{ RUST_DESK_CONFIG_RELAY_SERVER }}</li>
+            <li><b>Key:</b> {{ RUST_DESK_CONFIG_SERVER_KEY }}</li>
         </ul>
     </li>
 </ol>
