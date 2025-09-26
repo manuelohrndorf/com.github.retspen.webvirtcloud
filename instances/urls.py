@@ -85,5 +85,5 @@ urlpatterns = [
     path("check_instance/<vname>/", views.check_instance, name="check_instance"),
     path("<int:pk>/sshkeys/", views.sshkeys, name="sshkeys"),
     path("<int:pk>/rustdesk/", views.rustdesk, name="rustdesk"),
-
+    path("<int:pk>/rustdesk_pw/", views.rustdesk_pw, name="rustdesk_pw"),
 ]

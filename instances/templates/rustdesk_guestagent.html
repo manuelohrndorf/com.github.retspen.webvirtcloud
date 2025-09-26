@@ -1,0 +1,14 @@
+<ol class='mb-2'>
+  <li><b>Install &amp; start agent inside the guest VM (Ubuntu/Debian):</b>
+<pre>
+sudo apt update
+sudo apt install -y qemu-guest-agent
+sudo systemctl enable --now qemu-guest-agent
+</pre>
+  </li>
+  <li>Guest agent integration may have to be enabled (default) by administrators.</li>
+  <ul>
+    <li>VM instance settings &gt; Options &gt; Qemu Guest Agent</li>
+  </ul>
+  <li>Re-run this action.</li>
+</ol>

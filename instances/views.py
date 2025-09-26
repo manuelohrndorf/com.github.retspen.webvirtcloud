@@ -21,6 +21,7 @@ from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonRespon
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_noop as _
+from django.template.loader import render_to_string
 from libvirt import (VIR_DOMAIN_UNDEFINE_KEEP_NVRAM,
                      VIR_DOMAIN_UNDEFINE_NVRAM,
                      VIR_DOMAIN_START_PAUSED,
@@ -1984,55 +1985,6 @@ def flavor_delete(request, pk):
         {"object": flavor},
     )
 
-GUEST_AGENT_INSTRUCTIONS = {
-    "title": "Enable Guest Agent in VM",
-    "content": """
-<ol class='mb-2'>
-  <li><b>Install &amp; start agent inside the guest VM (Ubuntu/Debian):</b>
-<pre>
-sudo apt update
-sudo apt install -y qemu-guest-agent
-sudo systemctl enable --now qemu-guest-agent
-</pre>
-  </li>
-  <li>Re-run this action.</li>
-</ol>
-""".strip()
-}
-
-RUST_DESK_INSTALL = {
-    "title": "Install RustDesk in VM",
-    "content": """
-<ol class='mb-2'>
-  <li><a href="https://calculon.inf.unibe.ch:11000/en/virtual-machines#rustdesk" target="_blank">Install RustDesk for remote desktop access.</a></li>
-  <li>Re-run this action.</li>
-</ol>
-""".strip()
-}
-
-RUST_DESK_CONNECTION = {
-    "title": "RustDesk Connection",
-    "content": """
-<p><b>Desktop Client:</b> <a href="https://rustdesk.com/" target="_blank">Download, install, and launch the RustDesk client.</a></p>
-<p><strong>RustDesk Server Configuration:</strong> <span id="rustdesk-config"></span></p>
-<ol class='mb-2'>
-  <li>
-    <a href="#" onclick="navigator.clipboard.writeText('9JSP4s2dDVlZT12cD9GO5YzZ1gjaYZzU2pmSVZzV0JEZ3QFMkVme5J3VHp3aGJiOikXZrJCLiIiOikGchJCLicTMxEjM6g2YuUmYp5WduYmbp5ibvxWdjxWYjJiOikXYsVmciwiIoNmLlJWauVnLm5Wau42bsV3YsF2YiojI0N3boJye'); alert('RustDesk Server Configuration Copied!'); return false;">
-        Click this link to copy the server configuration to the clipboard.
-    </a>
-  </li>
-  <li>Click the 'Settings &gt; Network &gt; ID/Relay server &gt; Import server config' icon to import the configuration.
-    <ul class='mb-2'>
-        <li><b>ID server</b> (defaults to TCP 21116)<b>:</b> calculon.inf.unibe.ch</li>
-        <li><b>Relay server:</b> calculon.inf.unibe.ch: 21117</li>
-        <li><b>Key:</b> FkzGWryzed0T7dBtW6UJjvS6Xj85g698oCsmSfUCwk8=</li>
-    </ul>
-  </li>
-</ol>
-<p><strong>VM RustDesk Connection ID:</strong> <span id="rustdesk-id">{rust_id}</span></p>
-<p><strong>VM RustDesk Password:</strong> <span id="rustdesk-password">{password}</span></p>
-""".strip()
-}
 
 @login_required
 def rustdesk(request, pk):
@@ -2051,8 +2003,8 @@ def rustdesk(request, pk):
     ok, reason = utils.ensure_guest_agent(uri, domain, env)
     if not ok:
         return JsonResponse({
-            "title": GUEST_AGENT_INSTRUCTIONS["title"],
-            "content": GUEST_AGENT_INSTRUCTIONS["content"],
+            "title": "Enable Guest Agent in VM for RustDesk Managment",
+            "content": render_to_string("rustdesk_guestagent.html", {"instance": inst}),
         }, status=428)  # 428 Precondition Required
 
     # proceed with RustDesk
@@ -2061,8 +2013,8 @@ def rustdesk(request, pk):
         code, out, err = utils.guest_exec(uri, domain, "/bin/sh", ["-c", "command -v rustdesk"], env)
         if not(code == 0 and out.strip()):
             return JsonResponse({
-                "title": RUST_DESK_INSTALL["title"],
-                "content": RUST_DESK_INSTALL["content"],
+                "title": "Install RustDesk in VM",
+                "content": render_to_string("rustdesk_install.html", {"instance": inst}),
             }, status=428)  # 428 Precondition Required
 
         # Get RustDesk ID:
@@ -2070,21 +2022,38 @@ def rustdesk(request, pk):
         if code != 0 or not rust_id:
             return JsonResponse({"title": "RustDesk ID Error", "content": f"Get ID failed (exit {code}): {err or 'no output'}"}, status=500)
         
-        # Set RustDesk password:
-        password = utils.rand_pw(16)
-        code, _, err = utils.guest_exec(uri, domain, "rustdesk", ["--password", password], env)
-        if code != 0:
-            return JsonResponse({"title": "RustDesk Passsword Error", "content": f"Set password failed (exit {code}): {err}"}, status=500)
-        
         rust_id = rust_id.strip()
         return JsonResponse({
-                "title": RUST_DESK_CONNECTION["title"],
-                "content": RUST_DESK_CONNECTION["content"].format(
-                    rust_id=rust_id,
-                    password=password,
-                ),
+                "title": "RustDesk Connection",
+                "content": render_to_string("rustdesk_config.html", {"instance": inst,"rust_id": rust_id, "password": password}),
             }, status=200)
     except TimeoutError as e:
         return JsonResponse({"title": "Timeout Error", "content": str(e)}, status=504)
     except Exception as e:
         return JsonResponse({"title": "Error", "content": str(e)}, status=500)
+
+
+@login_required
+def rustdesk_pw(request, pk):
+    # Allow superuser / users with view_instances / assigned users
+    inst = get_instance(request.user, pk)
+
+    # Optional: only allow AJAX calls to avoid raw JSON navigation
+    if request.headers.get("x-requested-with") != "XMLHttpRequest":
+        return JsonResponse({"error": _("AJAX only")}, status=400)
+
+    uri = utils.build_uri(inst)
+    domain = inst.name  # or inst.get_uuid()
+    env = utils.default_env()
+    
+    try:
+        # Set RustDesk password:
+        password = utils.rand_pw(16)
+        code, _, err = utils.guest_exec(uri, domain, "rustdesk", ["--password", password], env)
+        if code != 0:
+            return JsonResponse({"password": f"Set password failed (exit {code}): {err}"}, status=500)
+        return JsonResponse({"password": password}, status=200)
+    except TimeoutError as e:
+        return JsonResponse({"password": f"Timeout Error: {str(e)}"}, status=504)
+    except Exception as e:
+        return JsonResponse({"password": f"Error: {str(e)}"}, status=500)

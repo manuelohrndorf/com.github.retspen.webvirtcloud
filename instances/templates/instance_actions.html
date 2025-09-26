@@ -14,7 +14,7 @@
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Suspend" %}">{% bs_icon 'pause-fill' %}</a>
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Power Off" %}">{% bs_icon 'power' %}</a>
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Power Cycle" %}">{% bs_icon 'repeat' %}</a>
-        <a class="btn btn-sm btn-secondary disabled" title="{% trans "Set RustDesk Password" %}">{% bs_icon 'display' %}</a>
+        <a class="btn btn-sm btn-secondary disabled" title="{% trans "RustDesk Configuration" %}">{% bs_icon 'display' %}</a>
         <button class="btn btn-sm btn-secondary disabled" title="{% trans "VNC Console" %}" disabled>
             <span>{% bs_icon 'eye-fill' %}</span>
         </button>
@@ -28,7 +28,7 @@
             {% bs_icon 'power' %}
         </a>
         <a class="btn btn-sm btn-secondary disabled" title="{% trans "Power Cycle" %}">{% bs_icon 'repeat' %}</a>
-        <a class="btn btn-sm btn-secondary disabled" title="{% trans "Set RustDesk Password" %}">{% bs_icon 'display' %}</a>
+        <a class="btn btn-sm btn-secondary disabled" title="{% trans "RustDesk Configuration" %}">{% bs_icon 'display' %}</a>
         <button class="btn btn-sm btn-secondary disabled" title="{% trans "VNC Console" %}" disabled>
             <span>{% bs_icon 'eye-fill' %}</span>
         </button>
@@ -39,7 +39,7 @@
         <a class="btn btn-sm btn-secondary" href="{% url 'instances:poweroff' instance.id %}" title="{% trans "Power Off" %}">{% bs_icon 'power' %}</a>
         <a class="btn btn-sm btn-secondary" href="{% url 'instances:powercycle' instance.id %}" title="{% trans "Power Cycle" %}">{% bs_icon 'repeat' %}</a>
         <a class="btn btn-sm btn-secondary rustdesk-btn" href="#" data-url="{% url 'instances:rustdesk' instance.id %}"
-          onclick="return fetchRustDesk(event, this, this.dataset.url);" title="{% trans "Set RustDesk Password" %}">
+          onclick="return fetchRustDesk(event, this, this.dataset.url);" title="{% trans "RustDesk Configuration" %}">
           <span data-role="icon" class="align-middle">{% bs_icon 'display' %}</span>
           <span data-role="spinner" class="spinner-border spinner-border-sm align-middle d-none" role="status" aria-hidden="true"></span>
         </a>
@@ -63,53 +63,14 @@
 </div>
 
 {% block script %}
-<script>
-    function open_console(uuid) {
-        url = '{% url 'console' %}?token=' + uuid + '';
-        window.open(url, '', 'width=850,height=650')
-    }
-</script>
 
 <script>
-async function fetchRustDesk(e, el, url) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-
-  // Re-entry guard
-  if (el.dataset.busy === '1') return false;
-  el.dataset.busy = '1';
-
-  // Show spinner, hide icon
-  const iconEl    = el.querySelector('[data-role="icon"]');
-  const spinnerEl = el.querySelector('[data-role="spinner"]');
-  iconEl.classList.add('d-none');
-  spinnerEl.classList.remove('d-none');
-  el.classList.add('disabled');
-  el.setAttribute('aria-disabled', 'true');
-  el.style.pointerEvents = 'none';
-
-  try {
-    const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    const text = await res.text(); // read once
-    let data;
-    try { data = JSON.parse(text); } catch { data = null; }
-    const title = data.title || "Info";
-    const content = data.content || "";
-    document.getElementById("infoLabel").textContent = title;
-    document.getElementById("infoModalBody").innerHTML = content;
-    new bootstrap.Modal(document.getElementById("infoModal")).show();
-  } catch (err) {
-    alert("Error: " + err);
-  } finally {
-    // Restore UI
-    spinnerEl.classList.add('d-none');
-    iconEl.classList.remove('d-none');
-    el.classList.remove('disabled');
-    el.removeAttribute('aria-disabled');
-    el.style.pointerEvents = '';
-    el.dataset.busy = '';
+  function open_console(uuid) {
+    url = '{% url 'console' %}?token=' + uuid + '';
+    window.open(url, '', 'width=850,height=650')
   }
-
-  return false;
-}
 </script>
+
+{% include "rustdesk_config_js.html" %}
+
 {% endblock script %}

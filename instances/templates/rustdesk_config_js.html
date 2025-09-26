@@ -1,0 +1,79 @@
+<script>
+  async function fetchRustDesk(e, el, url) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
+    // Re-entry guard
+    if (el.dataset.busy === '1') return false;
+    el.dataset.busy = '1';
+
+    // Show spinner, hide icon
+    const iconEl = el.querySelector('[data-role="icon"]');
+    const spinnerEl = el.querySelector('[data-role="spinner"]');
+    iconEl.classList.add('d-none');
+    spinnerEl.classList.remove('d-none');
+    el.classList.add('disabled');
+    el.setAttribute('aria-disabled', 'true');
+    el.style.pointerEvents = 'none';
+
+    try {
+      const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const text = await res.text(); // read once
+      let data;
+      try { data = JSON.parse(text); } catch { data = null; }
+      const title = data.title || "Info";
+      const content = data.content || "";
+      document.getElementById("infoLabel").textContent = title;
+      document.getElementById("infoModalBody").innerHTML = content;
+      new bootstrap.Modal(document.getElementById("infoModal")).show();
+    } catch (err) {
+      alert("Error: " + err);
+    } finally {
+      // Restore UI
+      spinnerEl.classList.add('d-none');
+      iconEl.classList.remove('d-none');
+      el.classList.remove('disabled');
+      el.removeAttribute('aria-disabled');
+      el.style.pointerEvents = '';
+      el.dataset.busy = '';
+    }
+
+    return false;
+  }
+
+  function copyRustDeskConfig(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("RustDesk Server Configuration Copied!");
+    }).catch(err => {
+      console.error("Clipboard copy failed:", err);
+      alert("Could not copy to clipboard.");
+    });
+    return false; // prevent link navigation
+  }
+  
+  async function fetchRustDeskPassword(e, el, url) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
+    // Re-entry guard
+    if (el.dataset.busy === '1') return false;
+    el.dataset.busy = '1';
+
+    try {
+      const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+
+      if (!res.ok) {
+        throw new Error(`Server responded with ${res.status}`);
+      }
+
+      const data = await res.json();  // directly parse JSON
+      document.getElementById("rustdesk-password").textContent = data.password || "";
+
+    } catch (err) {
+      console.error(err);
+      alert("Error fetching RustDesk password: " + err.message);
+    } finally {
+      el.dataset.busy = '';
+    }
+
+    return false;
+  }
+</script>
