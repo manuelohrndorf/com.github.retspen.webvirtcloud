@@ -2000,60 +2000,49 @@ sudo systemctl enable --now qemu-guest-agent
 """.strip()
 }
 
-RUST_DESK_CONNECTION = {
-    "title": "RustDesk Connection",
-    "content": """
-<p><strong>ID:</strong> <span id="rustdesk-id">{rust_id}</span></p>
-<p><strong>Password:</strong> <span id="rustdesk-password">{password}</span></p>
-""".strip()
-}
-
 RUST_DESK_INSTALL = {
     "title": "Install RustDesk in VM",
     "content": """
 <ol class='mb-2'>
-  <li><b>Install dependencies:</b>
-<pre>
-sudo apt update
-sudo apt install -y wget
-</pre>
-  </li>
-
-  <li><b>Download the latest RustDesk .deb package (for amd64):</b>
-<pre>
-wget https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb
-</pre>
-  </li>
-
-  <li><b>Install RustDesk:</b>
-<pre>
-sudo apt install -y ./rustdesk-*.deb
-</pre>
-  </li>
-
-  <li><b>Enable and start the RustDesk service (so it runs at boot):</b>
-<pre>
-sudo systemctl enable --now rustdesk
-</pre>
-  </li>
-
-  <li><b>Verify installation:</b>
-<pre>
-rustdesk --version
-</pre>
-  </li>
-
+  <li><a href="https://calculon.inf.unibe.ch:11000/en/virtual-machines#rustdesk" target="_blank">Install RustDesk for remote desktop access.</a></li>
   <li>Re-run this action.</li>
 </ol>
 """.strip()
 }
 
+RUST_DESK_CONNECTION = {
+    "title": "RustDesk Connection",
+    "content": """
+<p><b>Desktop Client:</b> <a href="https://rustdesk.com/" target="_blank">Download, install, and launch the RustDesk client.</a></p>
+<p><strong>RustDesk Server Configuration:</strong> <span id="rustdesk-config"></span></p>
+<ol class='mb-2'>
+  <li>
+    <a href="#" onclick="navigator.clipboard.writeText('9JSP4s2dDVlZT12cD9GO5YzZ1gjaYZzU2pmSVZzV0JEZ3QFMkVme5J3VHp3aGJiOikXZrJCLiIiOikGchJCLicTMxEjM6g2YuUmYp5WduYmbp5ibvxWdjxWYjJiOikXYsVmciwiIoNmLlJWauVnLm5Wau42bsV3YsF2YiojI0N3boJye'); alert('RustDesk Server Configuration Copied!'); return false;">
+        Click this link to copy the server configuration to the clipboard.
+    </a>
+  </li>
+  <li>Click the 'Settings &gt; Network &gt; ID/Relay server &gt; Import server config' icon to import the configuration.
+    <ul class='mb-2'>
+        <li><b>ID server</b> (defaults to TCP 21116)<b>:</b> calculon.inf.unibe.ch</li>
+        <li><b>Relay server:</b> calculon.inf.unibe.ch: 21117</li>
+        <li><b>Key:</b> FkzGWryzed0T7dBtW6UJjvS6Xj85g698oCsmSfUCwk8=</li>
+    </ul>
+  </li>
+</ol>
+<p><strong>VM RustDesk Connection ID:</strong> <span id="rustdesk-id">{rust_id}</span></p>
+<p><strong>VM RustDesk Password:</strong> <span id="rustdesk-password">{password}</span></p>
+""".strip()
+}
+
 @login_required
 def rustdesk(request, pk):
-    if not (request.user.is_staff or request.user.is_superuser):
-        return HttpResponseForbidden("Not allowed")
+    # Allow superuser / users with view_instances / assigned users
+    inst = get_instance(request.user, pk)
 
-    inst = Instance.objects.get(pk=pk)
+    # Optional: only allow AJAX calls to avoid raw JSON navigation
+    if request.headers.get("x-requested-with") != "XMLHttpRequest":
+        return JsonResponse({"error": _("AJAX only")}, status=400)
+
     uri = utils.build_uri(inst)
     domain = inst.name  # or inst.get_uuid()
     env = utils.default_env()
