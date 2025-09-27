@@ -49,8 +49,8 @@
     });
     return false; // prevent link navigation
   }
-  
-  async function guestExecForInstance(e, el, url, target) {
+
+  async function guestExecForInstance(e, el, url) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
 
     // Re-entry guard
@@ -64,16 +64,40 @@
         throw new Error(`Server responded with ${res.status}`);
       }
 
-      const data = await res.json();  // directly parse JSON
-      document.getElementById(target).textContent = data.result || "";
-
+      return await res.json();  // directly parse JSON
     } catch (err) {
       console.error(err);
       alert("Error fetching RustDesk password: " + err.message);
     } finally {
       el.dataset.busy = '';
     }
-
     return false;
+  }
+
+  function rustdeskPW(e, el, url, target) {
+    guestExecForInstance(e, el, url).then(data => {
+      if (data) {
+        document.getElementById(target).textContent = data.result || "";
+      }
+    });
+    return false; // prevent navigation
+  }
+
+  function toggleRemoteDesktopSetting(el, infoId = null) {
+    const url = el.checked ? el.dataset.urlEnable : el.dataset.urlDisable;
+
+    // Show or hide the info section
+    if (infoId) {
+      const info = document.getElementById(infoId);
+      if (info) {
+        if (el.checked) {
+          info.classList.remove("d-none");
+        } else {
+          info.classList.add("d-none");
+        }
+      }
+    }
+
+    return guestExecForInstance(event, el, url);
   }
 </script>

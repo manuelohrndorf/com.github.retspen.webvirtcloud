@@ -45,7 +45,9 @@ from webvirtcloud.settings import (
     RUST_DESK_CONFIG_ID_SERVER,
     RUST_DESK_CONFIG_RELAY_SERVER,
     RUST_DESK_CONFIG_SERVER_KEY,
-    RUST_DESK_INSTRUCTIONS_INSTALLATION
+    WIKI_VIRTUAL_DESKTOP,
+    WIKI_USER_DESKTOP,
+    WIKI_RUST_DESK_MIGRATION
 )
 
 def index(request):
@@ -2074,7 +2076,9 @@ def remote_desktop(request, pk):
                                                                      "RUST_DESK_CONFIG_ID_SERVER": RUST_DESK_CONFIG_ID_SERVER,
                                                                      "RUST_DESK_CONFIG_RELAY_SERVER": RUST_DESK_CONFIG_RELAY_SERVER,
                                                                      "RUST_DESK_CONFIG_SERVER_KEY": RUST_DESK_CONFIG_SERVER_KEY,
-                                                                     "RUST_DESK_INSTRUCTIONS_INSTALLATION": RUST_DESK_INSTRUCTIONS_INSTALLATION}),
+                                                                     "WIKI_VIRTUAL_DESKTOP": WIKI_VIRTUAL_DESKTOP,
+                                                                     "WIKI_USER_DESKTOP": WIKI_USER_DESKTOP,
+                                                                     "WIKI_RUST_DESK_MIGRATION": WIKI_RUST_DESK_MIGRATION}),
             }, status=200)
     except TimeoutError as e:
         return JsonResponse({"title": "Timeout Error", "content": str(e)}, status=504)
@@ -2113,6 +2117,10 @@ def rustdesk_pw(request, pk):
         return JsonResponse({"result": rand_pw}, status=200)
     else:
         return response
+    
+@login_required
+def rustdesk_config_export(request, pk):
+    return guest_exec_for_instance(request, pk, "rustdesk", ["enable", "--now", "rustdesk"])
 
 @login_required
 def rustdesk_enable(request, pk):

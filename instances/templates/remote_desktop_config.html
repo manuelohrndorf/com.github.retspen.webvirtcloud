@@ -3,97 +3,89 @@
 
 {% if desktop_is_installed %}
 
-    <h5>Virtual Desktop</h5>
-    {% if has_virtual_desktop %}
-        <p><span id="virtual-desktop-toggle"><a href="#"
-            data-url="{% url 'instances:virtual_desktop_disable' instance.id %}"
-            onclick="return guestExecForInstance(event, this, this.dataset.url, 'virtual-desktop-toggle');">
-            Click here to <em>disable</em> the virtual desktop.
-        </span></a></p>
-    {% else %}
-        <p><span id="virtual-desktop-toggle"><a href="#" 
-            data-url="{% url 'instances:virtual_desktop_enable' instance.id %}"
-            onclick="return guestExecForInstance(event, this, this.dataset.url, 'virtual-desktop-toggle');">
-            Click here to <em>enable</em> the virtual desktop.
-        </span></a></p>
-    {% endif %}
+    <div id="virtual-desktop-toggle" class="form-check form-switch">
+        <input class="form-check-input"
+                type="checkbox"
+                id="virtualDesktopSwitch"
+                {% if has_virtual_desktop %}checked{% endif %}
+                data-url-enable="{% url 'instances:virtual_desktop_enable' instance.id %}"
+                data-url-disable="{% url 'instances:virtual_desktop_disable' instance.id %}"
+                onchange="return toggleRemoteDesktopSetting(this);">
+        <label class="form-check-label" for="virtualDesktopSwitch">
+            Virtual Desktop (KasmVNC)
+            <a href="{{ WIKI_VIRTUAL_DESKTOP }}" target="_blank"
+                class="ms-1 text-decoration-none" title="Read more in the documentation">
+                <i class="bi bi-info-circle"></i>
+            </a>
+        </label>
+    </div>
 
-    <h5>User Desktop</h5>
-    {% if has_user_desktop %}
-        <p><span id="user-desktop-toggle"><a href="#"
-            data-url="{% url 'instances:user_desktop_disable' instance.id %}"
-            onclick="return guestExecForInstance(event, this, this.dataset.url, 'user-desktop-toggle');">
-            Click here to <em>disable</em> the user desktop.
-        </span></a></p>
-    {% else %}
-        <p><span id="user-desktop-toggle"><a href="#"
-            data-url="{% url 'instances:user_desktop_enable' instance.id %}"
-            onclick="return guestExecForInstance(event, this, this.dataset.url, 'user-desktop-toggle');">
-            Click here to <em>enable</em> the user desktop.
-        </span></a></p>
-    {% endif %}
+    <div id="user-desktop-toggle" class="form-check form-switch">
+        <input class="form-check-input"
+                type="checkbox"
+                id="userDesktopSwitch"
+                {% if has_user_desktop %}checked{% endif %}
+                data-url-enable="{% url 'instances:user_desktop_enable' instance.id %}"
+                data-url-disable="{% url 'instances:user_desktop_disable' instance.id %}"
+                onchange="return toggleRemoteDesktopSetting(this);">
+        <label class="form-check-label" for="userDesktopSwitch">
+            User Desktop (WebVirtCloud/RustDesk)
+            <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
+                class="ms-1 text-decoration-none" title="Read more in the documentation">
+                <i class="bi bi-info-circle"></i>
+            </a>
+        </label>
+    </div>
 
     {% if rustdesk_is_installed %}
 
-        <h5>RustDesk</h5>
-
-        {% if not has_user_desktop %}
-            <p><span id="user-desktop-rustdesk-toggle"><a href="#"
-                data-url="{% url 'instances:user_desktop_enable' instance.id %}"
-                onclick="return guestExecForInstance(event, this, this.dataset.url, 'user-desktop-rustdesk-toggle');">
-                Click here to <em>enable</em> the user desktop.
-            </span></a></p>
-        {% endif %}
-
-        {% if has_rustdesk_service %}
-
-            <p><b>Desktop Client:</b> <a href="https://rustdesk.com/" target="_blank">Download, install, and launch the RustDesk client.</a></p>
-            <p><strong>Connection Configuration:</strong> <span id="rustdesk-config"></span></p>
+        <div id="rustdesk-desktop-toggle" class="form-check form-switch">
+            <input class="form-check-input"
+                    type="checkbox"
+                    id="rustDeskDesktopSwitch"
+                    {% if has_virtual_desktop %}checked{% endif %}
+                    data-url-enable="{% url 'instances:rustdesk_enable' instance.id %}"
+                    data-url-disable="{% url 'instances:rustdesk_disable' instance.id %}"
+                    onchange="return toggleRemoteDesktopSetting(this, 'rustDeskInfo');">
+            <label class="form-check-label" for="rustDeskDesktopSwitch">
+                RustDesk
+                <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
+                    class="ms-1 text-decoration-none" title="Read more in the documentation">
+                    <i class="bi bi-info-circle"></i>
+                </a>
+            </label>
+        </div>
+        <div id="rustDeskInfo" class="{% if not has_rustdesk_service %}d-none{% endif %}">
             <ol class='mb-2'>
                 <li>
-                    <a href="#"
-                        onclick="return copyRustDeskConfig('{{ RUST_DESK_CONFIG_EXPORT_STRING }}');">
-                        Click here to copy the server configuration to the clipboard.
+                    <a href="#" onclick="return copyRustDeskConfig('{{ RUST_DESK_CONFIG_EXPORT_STRING }}');">
+                        Import server configuration.
                     </a>
                 </li>
-                <li>Then click the '⋮ &gt; Settings &gt; Network &gt; ID/Relay server &gt; Import server config' icon.
-                    <ul class='mb-2'>
-                        <li><b>ID server:</b> {{ RUST_DESK_CONFIG_ID_SERVER }}</li>
-                        <li><b>Relay server:</b> {{ RUST_DESK_CONFIG_RELAY_SERVER }}</li>
-                        <li><b>Key:</b> {{ RUST_DESK_CONFIG_SERVER_KEY }}</li>
-                    </ul>
-                </li>
+                <li><strong>Connection ID:</strong> <span id="rustdesk-id">{{ rustdesk_id }}</span></li>
+                <li><strong>Connection Password:</strong> <span id="rustdesk-password"><a href="#"
+                            data-url="{% url 'instances:rustdesk_pw' instance.id %}"
+                            onclick="return rustdeskPW(event, this, this.dataset.url, 'rustdesk-password');">
+                            Generate a new password.
+                        </a></span></li>
             </ol>
-            <p><strong>Connection ID:</strong> <span id="rustdesk-id">{{ rustdesk_id }}</span></p>
-            <p><strong>Connection Password:</strong> <span id="rustdesk-password"><a href="#"
-                        data-url="{% url 'instances:rustdesk_pw' instance.id %}"
-                        onclick="return guestExecForInstance(event, this, this.dataset.url, 'rustdesk-password');" %}">
-                        Click here to generate and set a new password (for all users with access).
-                    </a></span></p>
-            <ul class='mb-2'></ol>
-                <li>Copy the password now, it will not be displayed again.</li>
-                <li>If you have selected 'Remember password' before, in the ⋮ menu right of VMs ID select 'Forget password'.</li>
-            </ul>
-            <p><span id="rustdesk-toggle"><a href="#" 
-                data-url="{% url 'instances:rustdesk_disable' instance.id %}"
-                onclick="return guestExecForInstance(event, this, this.dataset.url, 'rustdesk-toggle');">
-                Click here to <em>disable</em> RustDesk.
-            </a></span></p>
-        {% else %}
-            <p><span id="rustdesk-toggle"><a href="#"
-                data-url="{% url 'instances:rustdesk_enable' instance.id %}"
-                onclick="return guestExecForInstance(event, this, this.dataset.url, 'rustdesk-toggle');">
-                Click here to <em>enable</em> RustDesk.
-            </span></a></p>
-        {% endif %}
+        </div>
 
     {% else %}
-        <h5>RustDesk</h5>
-        <ol class='mb-2'>
-            <li><a href="{{ RUST_DESK_INSTRUCTIONS_INSTALLATION }}" target="_blank">Install RustDesk for remote desktop access.</a></li>
-            <li>Re-run this action.</li>
-        </ol>
-
+        <div id="rustdesk-desktop-toggle" class="form-check form-switch">
+            <input class="form-check-input"
+                    type="checkbox"
+                    id="rustDeskDesktopSwitch"
+                    disabled>
+            <label class="form-check-label" for="rustDeskDesktopSwitch">
+                RustDesk
+                <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
+                    class="ms-1 text-decoration-none" title="Read more in the documentation">
+                    <i class="bi bi-info-circle"></i>
+                </a>
+            </label>
+        </div>
+        <p><a href="{{ WIKI_RUST_DESK_MIGRATION }}" target="_blank">Install RustDesk for remote desktop access.</a></p>
     {% endif %}
 
 {% else %}
