@@ -12,7 +12,7 @@
                 data-url-disable="{% url 'instances:virtual_desktop_disable' instance.id %}"
                 onchange="return toggleRemoteDesktopSetting(this);">
         <label class="form-check-label" for="virtualDesktopSwitch">
-            Virtual Desktop (KasmVNC)
+            Virtual Desktop (KasmVNC) (may require reboot)
             <a href="{{ WIKI_VIRTUAL_DESKTOP }}" target="_blank"
                 class="ms-1 text-decoration-none" title="Read more in the documentation">
                 <i class="bi bi-info-circle"></i>
@@ -29,7 +29,7 @@
                 data-url-disable="{% url 'instances:user_desktop_disable' instance.id %}"
                 onchange="return toggleRemoteDesktopSetting(this);">
         <label class="form-check-label" for="userDesktopSwitch">
-            User Desktop (WebVirtCloud/RustDesk)
+            User Desktop (WebVirtCloud/RustDesk) (requires reboot)
             <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
                 class="ms-1 text-decoration-none" title="Read more in the documentation">
                 <i class="bi bi-info-circle"></i>
