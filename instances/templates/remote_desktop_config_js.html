@@ -1,5 +1,5 @@
 <script>
-  async function fetchRustDesk(e, el, url) {
+  async function fetchRemoteDesktop(e, el, url) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
 
     // Re-entry guard
@@ -50,7 +50,7 @@
     return false; // prevent link navigation
   }
   
-  async function fetchRustDeskPassword(e, el, url) {
+  async function guestExecForInstance(e, el, url, target) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
 
     // Re-entry guard
@@ -65,7 +65,7 @@
       }
 
       const data = await res.json();  // directly parse JSON
-      document.getElementById("rustdesk-password").textContent = data.password || "";
+      document.getElementById(target).textContent = data.result || "";
 
     } catch (err) {
       console.error(err);

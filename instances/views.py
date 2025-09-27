@@ -1994,7 +1994,7 @@ def flavor_delete(request, pk):
 
 
 @login_required
-def rustdesk(request, pk):
+def remote_desktop(request, pk):
     # Allow superuser / users with view_instances / assigned users
     inst = get_instance(request.user, pk)
 
@@ -2010,35 +2010,71 @@ def rustdesk(request, pk):
     ok, reason = utils.ensure_guest_agent(uri, domain, env)
     if not ok:
         return JsonResponse({
-            "title": "Enable Guest Agent in VM for RustDesk Managment",
-            "content": render_to_string("rustdesk_guestagent.html", {"instance": inst}),
+            "title": "Enable Guest Agent in VM for Remote Desktop Managment",
+            "content": render_to_string("remote_desktop_guestagent.html", {"instance": inst}),
         }, status=428)  # 428 Precondition Required
 
-    # proceed with RustDesk
+    # proceed with remote desktop
     try:
         # Check if RustDesk is installed:
-        code, out, err = utils.guest_exec(uri, domain, "/bin/sh", ["-c", "command -v rustdesk"], env)
-        if not(code == 0 and out.strip()):
-            return JsonResponse({
-                "title": "Install RustDesk in VM",
-                "content": render_to_string("rustdesk_install.html", {"instance": inst, 
-                                                                      "RUST_DESK_INSTRUCTIONS_INSTALLATION": RUST_DESK_INSTRUCTIONS_INSTALLATION}),
-            }, status=428)  # 428 Precondition Required
+        code, rustdesk_is_installed_out, err = utils.guest_exec(uri, domain, "/bin/sh", ["-c", "command -v rustdesk"], env)
+        rustdesk_is_installed = code == 0 and rustdesk_is_installed_out.strip()
 
-        # Get RustDesk ID:
-        code, rust_id, err = utils.guest_exec(uri, domain, "rustdesk", ["--get-id"], env)
-        if code != 0 or not rust_id:
-            return JsonResponse({"title": "RustDesk ID Error", "content": f"Get ID failed (exit {code}): {err or 'no output'}"}, status=500)
-        
-        rust_id = rust_id.strip()
+        # Check RustDesk service:
+        if rustdesk_is_installed:
+            code, rustdesk_is_active, err = utils.guest_exec(uri, domain, "systemctl", ["is-active", "rustdesk"], env)
+            has_rustdesk_service = rustdesk_is_active == "active"
+
+            # Get RustDesk ID:
+            code, rustdesk_id, err = utils.guest_exec(uri, domain, "rustdesk", ["--get-id"], env)
+            if code != 0 or not rustdesk_id:
+                rustdesk_id = "unknown"
+            rustdesk_id = rustdesk_id.strip()
+        else:
+            has_rustdesk_service = False
+            rustdesk_id = "unknown"
+
+        # Check if desktop is installed:
+        code, out, err = utils.guest_exec(
+            uri, domain,
+            "dpkg",
+            ["-l", "ubuntu-desktop", "gnome-shell", "plasma-desktop", "xfce4", "mate-desktop-environment", "cinnamon"],
+            env,
+        )
+        desktop_is_installed = any(line.startswith("ii") for line in out.splitlines())
+
+        if desktop_is_installed:
+            # Check user desktop boot target:
+            code, default_target, err = utils.guest_exec(uri, domain, "systemctl", ["get-default"], env)
+            has_user_desktop = default_target == "graphical.target"
+        else:
+            has_user_desktop = False
+
+        # Check if KasmVNC is installed:
+        code, vncserver_is_installed_out, err = utils.guest_exec(uri, domain, "/bin/sh", ["-c", "command -v vncserver"], env)
+        vncserver_is_installed = code == 0 and vncserver_is_installed_out.strip()
+
+        # Check virtual desktop:
+        if vncserver_is_installed:
+            code, vnc_is_active, err = utils.guest_exec(uri, domain, "systemctl", ["is-active", "vncserver@seg"], env)
+            has_virtual_desktop = vnc_is_active == "active"
+        else:
+            has_virtual_desktop = False
+
         return JsonResponse({
-                "title": "RustDesk Connection",
-                "content": render_to_string("rustdesk_config.html", {"instance": inst, 
-                                                                     "rust_id": rust_id, 
+                "title": "Remote Desktop Configuration",
+                "content": render_to_string("remote_desktop_config.html", {"instance": inst, 
+                                                                     "rustdesk_is_installed": rustdesk_is_installed,
+                                                                     "has_rustdesk_service": has_rustdesk_service,
+                                                                     "rustdesk_id": rustdesk_id,
+                                                                     "desktop_is_installed": desktop_is_installed,
+                                                                     "has_user_desktop": has_user_desktop,
+                                                                     "has_virtual_desktop": has_virtual_desktop,
                                                                      "RUST_DESK_CONFIG_EXPORT_STRING": RUST_DESK_CONFIG_EXPORT_STRING,
                                                                      "RUST_DESK_CONFIG_ID_SERVER": RUST_DESK_CONFIG_ID_SERVER,
                                                                      "RUST_DESK_CONFIG_RELAY_SERVER": RUST_DESK_CONFIG_RELAY_SERVER,
-                                                                     "RUST_DESK_CONFIG_SERVER_KEY": RUST_DESK_CONFIG_SERVER_KEY}),
+                                                                     "RUST_DESK_CONFIG_SERVER_KEY": RUST_DESK_CONFIG_SERVER_KEY,
+                                                                     "RUST_DESK_INSTRUCTIONS_INSTALLATION": RUST_DESK_INSTRUCTIONS_INSTALLATION}),
             }, status=200)
     except TimeoutError as e:
         return JsonResponse({"title": "Timeout Error", "content": str(e)}, status=504)
@@ -2046,14 +2082,13 @@ def rustdesk(request, pk):
         return JsonResponse({"title": "Error", "content": str(e)}, status=500)
 
 
-@login_required
-def rustdesk_pw(request, pk):
+def guest_exec_for_instance(request, pk, path: str, args: list[str]):
     # Allow superuser / users with view_instances / assigned users
     inst = get_instance(request.user, pk)
 
-    # Optional: only allow AJAX calls to avoid raw JSON navigation
+    # Only allow AJAX calls to avoid raw JSON navigation
     if request.headers.get("x-requested-with") != "XMLHttpRequest":
-        return JsonResponse({"error": _("AJAX only")}, status=400)
+        return JsonResponse({"result": _("AJAX only")}, status=400)
 
     uri = utils.build_uri(inst)
     domain = inst.name  # or inst.get_uuid()
@@ -2061,12 +2096,50 @@ def rustdesk_pw(request, pk):
     
     try:
         # Set RustDesk password:
-        password = utils.rand_pw(16)
-        code, _, err = utils.guest_exec(uri, domain, "rustdesk", ["--password", password], env)
+        code, result, err = utils.guest_exec(uri, domain, path, args, env)
         if code != 0:
-            return JsonResponse({"password": f"Set password failed (exit {code}): {err}"}, status=500)
-        return JsonResponse({"password": password}, status=200)
+            return JsonResponse({"result": f"Error ({code}): {err}"}, status=500)
+        return JsonResponse({"result": result}, status=200)
     except TimeoutError as e:
-        return JsonResponse({"password": f"Timeout Error: {str(e)}"}, status=504)
+        return JsonResponse({"result": f"Timeout Error: {str(e)}"}, status=504)
     except Exception as e:
-        return JsonResponse({"password": f"Error: {str(e)}"}, status=500)
+        return JsonResponse({"result": f"Error: {str(e)}"}, status=500)
+
+@login_required
+def rustdesk_pw(request, pk):
+    rand_pw = utils.rand_pw(16)
+    response = guest_exec_for_instance(request, pk, "rustdesk", ["--password", rand_pw])
+    if response.status_code == 200:
+        return JsonResponse({"result": rand_pw}, status=200)
+    else:
+        return response
+
+@login_required
+def rustdesk_enable(request, pk):
+    return guest_exec_for_instance(request, pk, "systemctl", ["enable", "--now", "rustdesk"])
+
+@login_required
+def rustdesk_disable(request, pk):
+    return guest_exec_for_instance(request, pk, "systemctl", ["disable", "--now", "rustdesk"])
+
+@login_required
+def user_desktop_enable(request, pk):
+    return guest_exec_for_instance(request, pk, "systemctl", ["set-default", "graphical.target"])
+
+@login_required
+def user_desktop_disable(request, pk):
+    return guest_exec_for_instance(request, pk, "systemctl", ["set-default", "multi-user.target"])
+
+@login_required
+def virtual_desktop_enable(request, pk):
+    return guest_exec_for_instance(request, pk, "systemctl", ["enable", "--now", "vncserver@seg"])
+
+@login_required
+def virtual_desktop_disable(request, pk):
+    response = guest_exec_for_instance(request, pk, "systemctl", ["disable", "--now", "vncserver@seg"])
+    if response.status_code == 200:
+        try:
+            guest_exec_for_instance(request, pk, "vncserver", ["-kill", ":1"])
+        except Exception as e:
+            pass  # try, ignore errors
+    return response

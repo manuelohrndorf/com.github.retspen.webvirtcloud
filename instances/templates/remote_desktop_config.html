@@ -1,0 +1,104 @@
+{% load i18n %}
+{% load bootstrap_icons %}
+
+{% if desktop_is_installed %}
+
+    <h5>Virtual Desktop</h5>
+    {% if has_virtual_desktop %}
+        <p><span id="virtual-desktop-toggle"><a href="#"
+            data-url="{% url 'instances:virtual_desktop_disable' instance.id %}"
+            onclick="return guestExecForInstance(event, this, this.dataset.url, 'virtual-desktop-toggle');">
+            Click here to <em>disable</em> the virtual desktop.
+        </span></a></p>
+    {% else %}
+        <p><span id="virtual-desktop-toggle"><a href="#" 
+            data-url="{% url 'instances:virtual_desktop_enable' instance.id %}"
+            onclick="return guestExecForInstance(event, this, this.dataset.url, 'virtual-desktop-toggle');">
+            Click here to <em>enable</em> the virtual desktop.
+        </span></a></p>
+    {% endif %}
+
+    <h5>User Desktop</h5>
+    {% if has_user_desktop %}
+        <p><span id="user-desktop-toggle"><a href="#"
+            data-url="{% url 'instances:user_desktop_disable' instance.id %}"
+            onclick="return guestExecForInstance(event, this, this.dataset.url, 'user-desktop-toggle');">
+            Click here to <em>disable</em> the user desktop.
+        </span></a></p>
+    {% else %}
+        <p><span id="user-desktop-toggle"><a href="#"
+            data-url="{% url 'instances:user_desktop_enable' instance.id %}"
+            onclick="return guestExecForInstance(event, this, this.dataset.url, 'user-desktop-toggle');">
+            Click here to <em>enable</em> the user desktop.
+        </span></a></p>
+    {% endif %}
+
+    {% if rustdesk_is_installed %}
+
+        <h5>RustDesk</h5>
+
+        {% if not has_user_desktop %}
+            <p><span id="user-desktop-rustdesk-toggle"><a href="#"
+                data-url="{% url 'instances:user_desktop_enable' instance.id %}"
+                onclick="return guestExecForInstance(event, this, this.dataset.url, 'user-desktop-rustdesk-toggle');">
+                Click here to <em>enable</em> the user desktop.
+            </span></a></p>
+        {% endif %}
+
+        {% if has_rustdesk_service %}
+
+            <p><b>Desktop Client:</b> <a href="https://rustdesk.com/" target="_blank">Download, install, and launch the RustDesk client.</a></p>
+            <p><strong>Connection Configuration:</strong> <span id="rustdesk-config"></span></p>
+            <ol class='mb-2'>
+                <li>
+                    <a href="#"
+                        onclick="return copyRustDeskConfig('{{ RUST_DESK_CONFIG_EXPORT_STRING }}');">
+                        Click here to copy the server configuration to the clipboard.
+                    </a>
+                </li>
+                <li>Then click the '⋮ &gt; Settings &gt; Network &gt; ID/Relay server &gt; Import server config' icon.
+                    <ul class='mb-2'>
+                        <li><b>ID server:</b> {{ RUST_DESK_CONFIG_ID_SERVER }}</li>
+                        <li><b>Relay server:</b> {{ RUST_DESK_CONFIG_RELAY_SERVER }}</li>
+                        <li><b>Key:</b> {{ RUST_DESK_CONFIG_SERVER_KEY }}</li>
+                    </ul>
+                </li>
+            </ol>
+            <p><strong>Connection ID:</strong> <span id="rustdesk-id">{{ rustdesk_id }}</span></p>
+            <p><strong>Connection Password:</strong> <span id="rustdesk-password"><a href="#"
+                        data-url="{% url 'instances:rustdesk_pw' instance.id %}"
+                        onclick="return guestExecForInstance(event, this, this.dataset.url, 'rustdesk-password');" %}">
+                        Click here to generate and set a new password (for all users with access).
+                    </a></span></p>
+            <ul class='mb-2'></ol>
+                <li>Copy the password now, it will not be displayed again.</li>
+                <li>If you have selected 'Remember password' before, in the ⋮ menu right of VMs ID select 'Forget password'.</li>
+            </ul>
+            <p><span id="rustdesk-toggle"><a href="#" 
+                data-url="{% url 'instances:rustdesk_disable' instance.id %}"
+                onclick="return guestExecForInstance(event, this, this.dataset.url, 'rustdesk-toggle');">
+                Click here to <em>disable</em> RustDesk.
+            </a></span></p>
+        {% else %}
+            <p><span id="rustdesk-toggle"><a href="#"
+                data-url="{% url 'instances:rustdesk_enable' instance.id %}"
+                onclick="return guestExecForInstance(event, this, this.dataset.url, 'rustdesk-toggle');">
+                Click here to <em>enable</em> RustDesk.
+            </span></a></p>
+        {% endif %}
+
+    {% else %}
+        <h5>RustDesk</h5>
+        <ol class='mb-2'>
+            <li><a href="{{ RUST_DESK_INSTRUCTIONS_INSTALLATION }}" target="_blank">Install RustDesk for remote desktop access.</a></li>
+            <li>Re-run this action.</li>
+        </ol>
+
+    {% endif %}
+
+{% else %}
+
+    <p><b>No desktop detected for this instance.</b></p>
+
+{% endif %}
+        
