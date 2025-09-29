@@ -1,96 +1,68 @@
 {% load i18n %}
 {% load bootstrap_icons %}
 
+{% if rustdesk_is_installed %}
+{% if vncserver_is_installed %}
 {% if desktop_is_installed %}
 
-    <div id="virtual-desktop-toggle" class="form-check form-switch">
-        <input class="form-check-input"
-                type="checkbox"
-                id="virtualDesktopSwitch"
-                {% if has_virtual_desktop %}checked{% endif %}
-                data-url-enable="{% url 'instances:virtual_desktop_enable' instance.id %}"
-                data-url-disable="{% url 'instances:virtual_desktop_disable' instance.id %}"
-                onchange="return toggleRemoteDesktopSetting(this);">
-        <label class="form-check-label" for="virtualDesktopSwitch">
-            Virtual Desktop (KasmVNC) (may require reboot)
-            <a href="{{ WIKI_VIRTUAL_DESKTOP }}" target="_blank"
-                class="ms-1 text-decoration-none" title="Read more in the documentation">
-                <i class="bi bi-info-circle"></i>
+<fieldset>
+  <div class="form-check">
+    <input class="form-check-input"
+           type="radio"
+           name="desktopOption"
+           id="virtualDesktopRadio"
+           {% if has_virtual_desktop %}checked{% endif %}
+           data-url-enable="{% url 'instances:virtual_desktop_enable' instance.id %}"
+           onchange="return toggleRemoteDesktopSetting(this, [['rustDeskInfo', false]]);">
+    <label class="form-check-label" for="virtualDesktopRadio">
+      <b>Virtual Desktop:</b> KasmVNC (requires reboot)
+      <a href="{{ WIKI_VIRTUAL_DESKTOP }}" target="_blank"
+         class="ms-1 text-decoration-none" title="Read more in the documentation">
+         <i class="bi bi-info-circle"></i>
+      </a>
+    </label>
+  </div>
+
+  <div class="form-check">
+    <input class="form-check-input"
+           type="radio"
+           name="desktopOption"
+           id="userDesktopRadio"
+           {% if has_user_desktop and has_rustdesk_service %}checked{% endif %}
+           data-url-enable="{% url 'instances:user_desktop_enable' instance.id %}"
+           onchange="return toggleRemoteDesktopSetting(this, [['rustDeskInfo', true]]);">
+    <label class="form-check-label" for="userDesktopRadio">
+      <b>User Desktop:</b> RustDesk (requires reboot)
+      <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
+         class="ms-1 text-decoration-none" title="Read more in the documentation">
+         <i class="bi bi-info-circle"></i>
+      </a>
+    </label>
+  </div>
+</fieldset>
+
+<div id="rustDeskInfo" class="{% if not has_rustdesk_service %}d-none{% endif %}">
+    <ol class='mb-2'>
+        <li>
+            <b>Network Settings:</b> <a href="#" onclick="return copyRustDeskConfig('{{ RUST_DESK_CONFIG_EXPORT_STRING }}');">
+                 Import ID/Relay-Server configuration.
             </a>
-        </label>
-    </div>
-
-    <div id="user-desktop-toggle" class="form-check form-switch">
-        <input class="form-check-input"
-                type="checkbox"
-                id="userDesktopSwitch"
-                {% if has_user_desktop %}checked{% endif %}
-                data-url-enable="{% url 'instances:user_desktop_enable' instance.id %}"
-                data-url-disable="{% url 'instances:user_desktop_disable' instance.id %}"
-                onchange="return toggleRemoteDesktopSetting(this);">
-        <label class="form-check-label" for="userDesktopSwitch">
-            User Desktop (WebVirtCloud/RustDesk) (requires reboot)
-            <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
-                class="ms-1 text-decoration-none" title="Read more in the documentation">
-                <i class="bi bi-info-circle"></i>
-            </a>
-        </label>
-    </div>
-
-    {% if rustdesk_is_installed %}
-
-        <div id="rustdesk-desktop-toggle" class="form-check form-switch">
-            <input class="form-check-input"
-                    type="checkbox"
-                    id="rustDeskDesktopSwitch"
-                    {% if has_virtual_desktop %}checked{% endif %}
-                    data-url-enable="{% url 'instances:rustdesk_enable' instance.id %}"
-                    data-url-disable="{% url 'instances:rustdesk_disable' instance.id %}"
-                    onchange="return toggleRemoteDesktopSetting(this, 'rustDeskInfo');">
-            <label class="form-check-label" for="rustDeskDesktopSwitch">
-                RustDesk
-                <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
-                    class="ms-1 text-decoration-none" title="Read more in the documentation">
-                    <i class="bi bi-info-circle"></i>
-                </a>
-            </label>
-        </div>
-        <div id="rustDeskInfo" class="{% if not has_rustdesk_service %}d-none{% endif %}">
-            <ol class='mb-2'>
-                <li>
-                    <a href="#" onclick="return copyRustDeskConfig('{{ RUST_DESK_CONFIG_EXPORT_STRING }}');">
-                        Import server configuration.
-                    </a>
-                </li>
-                <li><strong>Connection ID:</strong> <span id="rustdesk-id">{{ rustdesk_id }}</span></li>
-                <li><strong>Connection Password:</strong> <span id="rustdesk-password"><a href="#"
-                            data-url="{% url 'instances:rustdesk_pw' instance.id %}"
-                            onclick="return rustdeskPW(event, this, this.dataset.url, 'rustdesk-password');">
-                            Generate a new password.
-                        </a></span></li>
-            </ol>
-        </div>
-
-    {% else %}
-        <div id="rustdesk-desktop-toggle" class="form-check form-switch">
-            <input class="form-check-input"
-                    type="checkbox"
-                    id="rustDeskDesktopSwitch"
-                    disabled>
-            <label class="form-check-label" for="rustDeskDesktopSwitch">
-                RustDesk
-                <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
-                    class="ms-1 text-decoration-none" title="Read more in the documentation">
-                    <i class="bi bi-info-circle"></i>
-                </a>
-            </label>
-        </div>
-        <p><a href="{{ WIKI_RUST_DESK_MIGRATION }}" target="_blank">Install RustDesk for remote desktop access.</a></p>
-    {% endif %}
+        </li>
+        <li><strong>Connection ID:</strong> <span id="rustdesk-id">{{ rustdesk_id }}</span></li>
+        <li><strong>Connection Password:</strong> <span id="rustdesk-password"><a href="#"
+                    data-url="{% url 'instances:rustdesk_pw' instance.id %}"
+                    onclick="return rustdeskPW(event, this, this.dataset.url, 'rustdesk-password');">
+                    Generate a new password.
+                </a></span></li>
+    </ol>
+</div>
 
 {% else %}
-
-    <p><b>No desktop detected for this instance.</b></p>
-
+<p>No desktop detected for this instance.</p>
 {% endif %}
-        
+{% else %}
+    <p>No KasmVNC (service) for virtual dektop detected.</p>
+{% endif %}
+{% else %}
+    <p><a href="{{ WIKI_RUST_DESK_MIGRATION }}" target="_blank">Install RustDesk for remote user desktop access.</a></p>
+{% endif %}

@@ -2071,6 +2071,7 @@ def remote_desktop(request, pk):
                                                                      "rustdesk_id": rustdesk_id,
                                                                      "desktop_is_installed": desktop_is_installed,
                                                                      "has_user_desktop": has_user_desktop,
+                                                                     "vncserver_is_installed": vncserver_is_installed,
                                                                      "has_virtual_desktop": has_virtual_desktop,
                                                                      "RUST_DESK_CONFIG_EXPORT_STRING": RUST_DESK_CONFIG_EXPORT_STRING,
                                                                      "RUST_DESK_CONFIG_ID_SERVER": RUST_DESK_CONFIG_ID_SERVER,
@@ -2109,6 +2110,7 @@ def guest_exec_for_instance(request, pk, path: str, args: list[str]):
     except Exception as e:
         return JsonResponse({"result": f"Error: {str(e)}"}, status=500)
 
+
 @login_required
 def rustdesk_pw(request, pk):
     rand_pw = utils.rand_pw(16)
@@ -2117,37 +2119,36 @@ def rustdesk_pw(request, pk):
         return JsonResponse({"result": rand_pw}, status=200)
     else:
         return response
-    
-@login_required
-def rustdesk_config_export(request, pk):
-    return guest_exec_for_instance(request, pk, "rustdesk", ["enable", "--now", "rustdesk"])
 
-@login_required
-def rustdesk_enable(request, pk):
-    return guest_exec_for_instance(request, pk, "systemctl", ["enable", "--now", "rustdesk"])
-
-@login_required
-def rustdesk_disable(request, pk):
-    return guest_exec_for_instance(request, pk, "systemctl", ["disable", "--now", "rustdesk"])
 
 @login_required
 def user_desktop_enable(request, pk):
-    return guest_exec_for_instance(request, pk, "systemctl", ["set-default", "graphical.target"])
+    # enable boot to user desktop
+    response = guest_exec_for_instance(request, pk, "systemctl", ["set-default", "graphical.target"])
 
-@login_required
-def user_desktop_disable(request, pk):
-    return guest_exec_for_instance(request, pk, "systemctl", ["set-default", "multi-user.target"])
+    # enable RustDesk serivice
+    guest_exec_for_instance(request, pk, "systemctl", ["enable", "--now", "rustdesk"])
 
-@login_required
-def virtual_desktop_enable(request, pk):
-    return guest_exec_for_instance(request, pk, "systemctl", ["enable", "--now", "vncserver@seg"])
-
-@login_required
-def virtual_desktop_disable(request, pk):
-    response = guest_exec_for_instance(request, pk, "systemctl", ["disable", "--now", "vncserver@seg"])
+    # disable KasmVNC virtual desktop
+    guest_exec_for_instance(request, pk, "systemctl", ["disable", "--now", "vncserver@seg"])
     if response.status_code == 200:
         try:
             guest_exec_for_instance(request, pk, "vncserver", ["-kill", ":1"])
         except Exception as e:
             pass  # try, ignore errors
+
+    return response
+
+
+@login_required
+def virtual_desktop_enable(request, pk):
+    # enable KasmVNC service
+    response = guest_exec_for_instance(request, pk, "systemctl", ["enable", "--now", "vncserver@seg"])
+
+    # disable RustDesk service
+    guest_exec_for_instance(request, pk, "systemctl", ["disable", "--now", "rustdesk"])
+
+    # disable boot to user desktop
+    guest_exec_for_instance(request, pk, "systemctl", ["set-default", "multi-user.target"])
+
     return response

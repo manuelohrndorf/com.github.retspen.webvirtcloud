@@ -86,10 +86,6 @@ urlpatterns = [
     path("<int:pk>/sshkeys/", views.sshkeys, name="sshkeys"),
     path("<int:pk>/remote_desktop/", views.remote_desktop, name="remote_desktop"),
     path("<int:pk>/rustdesk_pw/", views.rustdesk_pw, name="rustdesk_pw"),
-    path("<int:pk>/rustdesk_enable/", views.rustdesk_enable, name="rustdesk_enable"),
-    path("<int:pk>/rustdesk_disable/", views.rustdesk_disable, name="rustdesk_disable"),
     path("<int:pk>/user_desktop_enable/", views.user_desktop_enable, name="user_desktop_enable"),
-    path("<int:pk>/user_desktop_disable/", views.user_desktop_disable, name="user_desktop_disable"),
     path("<int:pk>/virtual_desktop_enable/", views.virtual_desktop_enable, name="virtual_desktop_enable"),
-    path("<int:pk>/virtual_desktop_disable/", views.virtual_desktop_disable, name="virtual_desktop_disable"),
 ]

@@ -42,7 +42,7 @@
 
   function copyRustDeskConfig(text) {
     navigator.clipboard.writeText(text).then(() => {
-      alert("RustDesk Server Configuration Copied!");
+      alert("RustDesk ID/Relay-Server Configuration Copied.");
     }).catch(err => {
       console.error("Clipboard copy failed:", err);
       alert("Could not copy to clipboard.");
@@ -83,21 +83,25 @@
     return false; // prevent navigation
   }
 
-  function toggleRemoteDesktopSetting(el, infoId = null) {
+  function toggleRemoteDesktopSetting(el, infoIDs = null) {
     const url = el.checked ? el.dataset.urlEnable : el.dataset.urlDisable;
 
     // Show or hide the info section
-    if (infoId) {
-      const info = document.getElementById(infoId);
-      if (info) {
-        if (el.checked) {
-          info.classList.remove("d-none");
-        } else {
-          info.classList.add("d-none");
+    if (infoIDs) {
+      infoIDs.forEach(([id, enable]) => {
+        const info = document.getElementById(id);
+        if (info) {
+          if (enable) {
+            info.classList.remove("d-none");
+          } else {
+            info.classList.add("d-none");
+          }
         }
-      }
+      });
     }
 
-    return guestExecForInstance(event, el, url);
+    guestExecForInstance(event, el, url);
+    return false;  // prevent navigation
+
   }
 </script>
