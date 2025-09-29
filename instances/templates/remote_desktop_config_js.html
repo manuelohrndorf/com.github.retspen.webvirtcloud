@@ -50,6 +50,16 @@
     return false; // prevent link navigation
   }
 
+  function rebootViaGuestAgent(e, el, url) {
+    guestExecForInstance(e, el, url).then(() => {
+      alert("Instance will reboot now.");
+    }).catch(err => {
+      console.error("Reboot failed:", err);
+      alert("Reboot via guest agent failed.");
+    });
+    return false; // prevent link navigation
+  }
+
   async function guestExecForInstance(e, el, url) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
 
@@ -67,7 +77,6 @@
       return await res.json();  // directly parse JSON
     } catch (err) {
       console.error(err);
-      alert("Error fetching RustDesk password: " + err.message);
     } finally {
       el.dataset.busy = '';
     }

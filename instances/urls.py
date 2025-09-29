@@ -88,4 +88,5 @@ urlpatterns = [
     path("<int:pk>/rustdesk_pw/", views.rustdesk_pw, name="rustdesk_pw"),
     path("<int:pk>/user_desktop_enable/", views.user_desktop_enable, name="user_desktop_enable"),
     path("<int:pk>/virtual_desktop_enable/", views.virtual_desktop_enable, name="virtual_desktop_enable"),
+    path("<int:pk>/reboot_via_guest_agent/", views.reboot_via_guest_agent, name="reboot_via_guest_agent"),
 ]

@@ -15,7 +15,7 @@
            data-url-enable="{% url 'instances:virtual_desktop_enable' instance.id %}"
            onchange="return toggleRemoteDesktopSetting(this, [['rustDeskInfo', false]]);">
     <label class="form-check-label" for="virtualDesktopRadio">
-      <b>Virtual Desktop:</b> KasmVNC (requires reboot)
+      <b>Virtual Desktop:</b> KasmVNC (<a href="#" data-url="{% url 'instances:reboot_via_guest_agent' instance.id %}" onclick="return rebootViaGuestAgent(event, this, this.dataset.url);">requires reboot</a>)
       <a href="{{ WIKI_VIRTUAL_DESKTOP }}" target="_blank"
          class="ms-1 text-decoration-none" title="Read more in the documentation">
          <i class="bi bi-info-circle"></i>
@@ -32,7 +32,7 @@
            data-url-enable="{% url 'instances:user_desktop_enable' instance.id %}"
            onchange="return toggleRemoteDesktopSetting(this, [['rustDeskInfo', true]]);">
     <label class="form-check-label" for="userDesktopRadio">
-      <b>User Desktop:</b> RustDesk (requires reboot)
+      <b>User Desktop:</b> RustDesk (<a href="#" data-url="{% url 'instances:reboot_via_guest_agent' instance.id %}" onclick="return rebootViaGuestAgent(event, this, this.dataset.url);">requires reboot</a>)
       <a href="{{ WIKI_USER_DESKTOP }}" target="_blank"
          class="ms-1 text-decoration-none" title="Read more in the documentation">
          <i class="bi bi-info-circle"></i>

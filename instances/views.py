@@ -2152,3 +2152,7 @@ def virtual_desktop_enable(request, pk):
     guest_exec_for_instance(request, pk, "systemctl", ["set-default", "multi-user.target"])
 
     return response
+
+@login_required
+def reboot_via_guest_agent(request, pk):
+    return guest_exec_for_instance(request, pk, "reboot", [])
